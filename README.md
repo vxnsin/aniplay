@@ -20,18 +20,35 @@ Anime im Wohnzimmer: Der Fernseher oder PC ist der Player, das Handy die Fernbed
 
 ## Was es kann
 
+- **Ein Fernseher, eine Session:** Jeder TV bekommt einen eigenen Code. Der QR-Code auf dem TV verbindet das Handy mit genau diesem Fernseher. Wiedergabe, Verlauf, Weiterschauen und Einstellungen sind pro TV getrennt. Zwei Leute im selben WLAN schauen so gleichzeitig verschiedene Sachen, ohne sich in die Quere zu kommen.
 - **Suche** direkt auf dem Handy, oder einen aniworld-Link einfügen.
 - **Staffeln, Filme und Folgen** mit deutschem und englischem Titel und den verfügbaren Sprachen.
 - **Sprache und Hoster wechseln**, die Position bleibt erhalten.
-- **Weiterschauen:** Jede Folge startet dort, wo du aufgehört hast. Fertig geschaute bekommen einen Haken. Verlauf und Fortschritt liegen in SQLite.
-- **AniWorld-Profil**, optional: Namen eintragen, dann zeigt die Fernbedienung zuletzt geschaut, Watchlist und Abos. Gesehene Folgen werden markiert.
+- **Weiterschauen:** Jede Folge startet dort, wo du aufgehört hast, pro Fernseher. Fertig geschaute bekommen einen Haken. Verlauf und Fortschritt liegen in SQLite.
+- **AniWorld-Profil**, optional und pro Fernseher: Namen eintragen, dann zeigt die Fernbedienung zuletzt geschaut, Watchlist und Abos. Gesehene Folgen werden markiert.
 - **Autoplay:** Die nächste Folge startet von selbst, auch über Staffelgrenzen. Abschaltbar.
 - **Hoster-Fallback:** Spielt eine Quelle auf dem TV nicht, nimmt aniplay automatisch die nächste.
-- **QR-Code** auf dem TV zum Verbinden, mehrere Fernbedienungen und mehrere TVs gleichzeitig.
-- Die laufende Folge überlebt einen Server-Neustart, der TV spielt einfach weiter.
+- Mehrere Handys können denselben TV steuern. Fernseher lassen sich benennen, etwa „wohnzimmer“.
+- Die laufende Folge überlebt einen Server-Neustart, jeder TV spielt einfach weiter.
 - Heller und dunkler Modus, folgt dem System.
 
 ## Loslegen
+
+### Auf dem Raspberry Pi
+
+Am einfachsten läuft aniplay dauerhaft auf einem Raspberry Pi oder einem anderen Debian-Rechner im Heimnetz:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/vxnsin/aniplay/main/scripts/setup-pi.sh | bash
+```
+
+Das Script fragt nach Ordner, Port, Dienstname und der Adresse für die QR-Codes und schlägt für alles einen Wert vor, Enter übernimmt. Danach installiert es Node, falls es fehlt, lädt aniplay herunter, legt die Datenbank nach `/var/lib/aniplay` und richtet einen Dienst ein, der beim Booten startet. Es braucht keine Domain, und nichts wird ins Internet geöffnet.
+
+Update: das Script einfach nochmal starten. Ohne Fragen: `bash ~/aniplay/scripts/setup-pi.sh --yes`.
+
+Tipp: Gib dem Pi im Router eine feste IP, dann bleiben die QR-Codes gültig. Oder trag bei der Frage nach der Adresse `http://<hostname>.local:3000` ein.
+
+### Auf dem eigenen Rechner
 
 Voraussetzung ist Node 22.13 oder neuer.
 
@@ -47,9 +64,13 @@ Dann im Browser:
 | gerät | adresse |
 |---|---|
 | TV oder PC | `http://<ip-des-rechners>:3000/watcher` |
-| Handy | `http://<ip-des-rechners>:3000/controller`, oder den QR-Code auf dem TV scannen |
+| Handy | den QR-Code auf dem TV scannen, oder `http://<ip-des-rechners>:3000/controller` öffnen und den Code vom TV eingeben |
 
-Beide Geräte müssen im selben WLAN sein. Den Port ändert `PORT=4000 npm start`. Beim Start gibt der Server beide Adressen mit der richtigen IP aus.
+Alle Geräte müssen im selben WLAN sein. Den Port ändert `PORT=4000 npm start`. Beim Start gibt der Server die Adressen mit der richtigen IP aus.
+
+### Mehrere Fernseher
+
+Jeder Browser, der `/watcher` öffnet, ist ein eigener Fernseher mit eigenem vierstelligen Code und merkt sich diesen Code. Das Handy, das den QR-Code eines TVs scannt, steuert nur diesen TV und sieht nur dessen Verlauf. Über „anderen tv wählen“ in der Fernbedienung kommst du zu einem anderen Fernseher. Einen TV gezielt spiegeln geht mit `/watcher?s=CODE`.
 
 ## Bedienung
 
@@ -57,18 +78,15 @@ Auf dem Handy: Play/Pause, ±10, 30, 60 und 85 Sekunden, Seek-Leiste, Lautstärk
 
 Tastatur am TV: `Space` Pause, `←` `→` ±10 Sekunden (mit `Shift` ±60), `↑` `↓` Lautstärke, `f` Vollbild, `m` stumm, `i` Info, `Esc` Stop.
 
-## Dauerhaft laufen lassen
+## Einstellungen
 
-Zum Beispiel auf einem Raspberry Pi mit pm2:
+| variable | standard | |
+|---|---|---|
+| `PORT` | `3000` | Port des Servers |
+| `DATA_DIR` | `./data` | Ordner der Datenbank `aniplay.sqlite` |
+| `PUBLIC_URL` | LAN-IP automatisch | Adresse in den QR-Codes, z. B. `http://pi.local:3000` |
 
-```bash
-npm i -g pm2
-pm2 start server.js --name aniplay
-pm2 save
-pm2 startup
-```
-
-`pm2 startup` gibt einen Befehl aus, den du einmal ausführst, dann startet aniplay beim Booten mit. Die Datenbank liegt in `data/` und lässt sich einfach sichern.
+Auf dem Pi stehen sie in `/etc/aniplay.env`. Die Datenbank lässt sich einfach sichern, sie ist eine einzige Datei.
 
 Zum Entwickeln startet `npm run dev` den Server mit nodemon neu, sobald sich Code ändert.
 
@@ -111,11 +129,13 @@ Der Smoke-Test fragt aniworld.to live ab: Suche, Serie, Staffel, Folge und jeden
 ## Aufbau
 
 ```
-server.js              Express und WebSocket, API, Stream-Proxy, Zustand
+server.js              Express und WebSocket, API, Stream-Proxy, Kopplung
+lib/session.js         eine Session pro Fernseher: Wiedergabe, Sockets, Autoplay, Fallback
 lib/http.js            fetch mit User-Agent und Timeout
 lib/aniworld.js        Suche, Serie, Staffel, Folge, Profil
 lib/stream-resolve.js  Hoster-Reihenfolge, Weiterleitung zum Loader
-lib/store.js           SQLite: Einstellungen, Verlauf, Fortschritt, Session
+lib/store.js           SQLite: Fernseher, Einstellungen, Verlauf, Fortschritt – alles pro TV
+scripts/setup-pi.sh    Einrichtung auf einem Pi im Heimnetz
 lib/loaders/           ein Loader pro Hoster
 public/                watcher.html (TV), controller.html (Handy), index.html
 ```

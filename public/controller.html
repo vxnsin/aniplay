@@ -55,7 +55,13 @@
     .switch.on::after { left: 22px; background: var(--accent); }
     .embed-note { font-size: 12px; padding: 8px 10px; border: 1px dashed var(--line); background: var(--paper-2); }
     .section-label { font-family: var(--font-pixel); font-size: 12px; color: var(--ink-soft); margin: 0 0 6px; }
-    .conn-chip { font-size: 11px; }
+    .conn-chip { font-size: 11px; cursor: pointer; }
+    .pair { text-align: center; padding: 10px 0 4px; }
+    .pair h2 { font-family: var(--font-pixel); font-weight: 400; font-size: 20px; margin: 0 0 6px; color: var(--accent); }
+    .pair .code-input { font-family: var(--font-pixel); font-size: 34px; letter-spacing: 0.3em; text-align: center; text-transform: uppercase; width: 220px; max-width: 100%; padding: 8px 0 8px 0.3em; }
+    .pair .err { color: var(--dnd); font-size: 12px; min-height: 18px; margin-top: 6px; }
+    .tv-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tv-row .code { font-family: var(--font-pixel); font-size: 18px; letter-spacing: 0.12em; color: var(--accent); }
     .busy { display: none; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-soft); padding: 6px 0 0; }
     .busy.show { display: flex; }
     .empty-note { font-size: 12px; color: var(--ink-soft); text-align: center; padding: 18px 0; }
@@ -73,10 +79,24 @@
       <button class="tab" data-tab="anime" type="button" id="tab-anime">anime</button>
       <button class="tab" data-tab="remote" type="button" id="tab-remote">remote</button>
       <span class="spacer"></span>
-      <span class="chip conn-chip" id="conn-chip" style="align-self: center; margin-bottom: 4px;"><span class="status-dot" id="conn-dot"></span><span id="conn-text">verbinde …</span></span>
+      <span class="chip conn-chip" id="conn-chip" style="align-self: center; margin-bottom: 4px;" title="verbundener fernseher – antippen zum wechseln"><span class="status-dot" id="conn-dot"></span><span id="conn-text">kein tv</span></span>
     </nav>
 
-    <main class="win" style="min-height: 320px;">
+    <section class="win hidden" id="pair-view" style="min-height: 320px;">
+      <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">mit fernseher verbinden</span></div>
+      <div class="win-body pair">
+        <h2>welcher tv? (・_・)</h2>
+        <p class="muted sm" style="margin: 0 0 14px;">scanne den qr-code auf dem fernseher, dann bist du sofort richtig verbunden.<br />oder tipp den code ein, der dort groß steht.</p>
+        <form id="pair-form" autocomplete="off">
+          <input class="input code-input" id="pair-code" maxlength="4" placeholder="····" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="text" />
+          <div style="margin-top: 12px;"><button class="btn primary" type="submit">verbinden</button></div>
+        </form>
+        <div class="err" id="pair-err"></div>
+        <p class="muted xs" style="margin: 14px 0 0;">jeder fernseher hat eigene wiedergabe, eigenen verlauf und eigene einstellungen.</p>
+      </div>
+    </section>
+
+    <main class="win" id="app-view" style="min-height: 320px;">
       <div class="win-body">
 
         <!-- ───────── suche ───────── -->
@@ -93,6 +113,18 @@
             <div class="win-body">
               <div class="cont" id="continue"></div>
               <div class="empty-note" id="continue-empty">noch nichts geschaut. such dir oben was raus (๑˃ᴗ˂)ﻭ</div>
+            </div>
+          </div>
+
+          <!-- this tv -->
+          <div class="win win-dashed" style="margin-top: 16px;">
+            <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">dieser fernseher</span><span class="right" id="tv-watchers"></span></div>
+            <div class="win-body">
+              <div class="tv-row"><span class="muted sm">code</span><span class="code" id="tv-code">····</span><span class="spacer"></span><button class="btn sm" type="button" id="tv-switch">anderen tv wählen</button></div>
+              <form class="search-row" id="tv-name-form" autocomplete="off" style="margin-top: 10px;">
+                <input class="input" id="tv-name" placeholder="name, z. b. wohnzimmer (optional)" maxlength="30" />
+                <button class="btn" type="submit">ok</button>
+              </form>
             </div>
           </div>
 
@@ -220,7 +252,11 @@
 
   <script src="/js/common.js"></script>
   <script>
-    const { toast, fmtTime, epLabel, esc, api, LANG_SHORT, LANG_LABEL } = AP;
+    const { toast, fmtTime, epLabel, esc, LANG_SHORT, LANG_LABEL } = AP;
+    // every call goes to the paired tv; if that tv is gone, back to the pairing screen
+    const api = async (...args) => {
+      try { return await AP.api(...args); } catch (e) { if (e.code === 'no_tv') unpair('dieser fernseher ist nicht mehr bekannt – bitte neu verbinden'); throw e; }
+    };
     AP.applySavedTheme();
     AP.updateThemeButtons();
 
@@ -240,28 +276,84 @@
     }
     document.querySelectorAll('.tab[data-tab]').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
 
-    // ── websocket ──
-    const ws = AP.connectWs('controller', {
-      onOpen() { setConn(true); },
-      onClose() { setConn(false); },
-      onMessage(msg) {
-        if (msg.type === 'state') { S = msg.state; pb = { ...pb, ...S.playback }; renderAll(); }
-        else if (msg.type === 'playback') { pb = { ...pb, ...msg.playback }; renderPlayback(); }
-        else if (msg.type === 'toast') toast(msg.message, 3500);
-      },
-    });
+    // ── pairing: this remote belongs to exactly one tv ──
+    const REMOTE_KEY = 'aniplay:remote-tv';
+    let ws = null;
+    const send = (obj) => ws && ws.send(obj);
+    const tvLabel = (tv) => (tv ? (tv.name ? `${tv.name} · ${tv.id}` : `tv ${tv.id}`) : 'kein tv');
+
+    function showPairing(message) {
+      $('app-view').classList.add('hidden');
+      document.querySelector('.nav-tabs').classList.add('hidden');
+      $('pair-view').classList.remove('hidden');
+      $('pair-err').textContent = message || '';
+      setTimeout(() => $('pair-code').focus(), 50);
+    }
+    function showApp() {
+      $('pair-view').classList.add('hidden');
+      $('app-view').classList.remove('hidden');
+      document.querySelector('.nav-tabs').classList.remove('hidden');
+    }
+    function unpair(message) {
+      if (ws) { ws.close(); ws = null; }
+      try { localStorage.removeItem(REMOTE_KEY); } catch {}
+      AP.setTv(null);
+      S = null; P = null;
+      setConn(false);
+      showPairing(message);
+    }
+    async function pair(code) {
+      code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (code.length !== 4) throw new Error('der code hat 4 zeichen');
+      const { tv } = await AP.api('/api/pair/' + code);
+      try { localStorage.setItem(REMOTE_KEY, tv.id); } catch {}
+      AP.setTv(tv.id);
+      if (ws) ws.close();
+      ws = AP.connectWs('controller', {
+        onOpen() { setConn(true); },
+        onClose() { setConn(false); },
+        onNoTv() { unpair('dieser fernseher ist nicht mehr bekannt – bitte neu verbinden'); },
+        onMessage(msg) {
+          if (msg.type === 'state') { S = msg.state; pb = { ...pb, ...S.playback }; renderAll(); }
+          else if (msg.type === 'playback') { pb = { ...pb, ...msg.playback }; renderPlayback(); }
+          else if (msg.type === 'toast') toast(msg.message, 3500);
+        },
+      });
+      showApp();
+      $('conn-text').textContent = tvLabel(tv);
+      return tv;
+    }
     function setConn(on) {
       $('conn-dot').className = 'status-dot ' + (on ? 'on' : 'off');
-      $('conn-text').textContent = on ? (S ? `tv ${S.watchers}` : 'verbunden') : 'offline';
+      if (!AP.getTv()) { $('conn-text').textContent = 'kein tv'; return; }
+      $('conn-text').textContent = on ? tvLabel(S?.tv || { id: AP.getTv() }) : 'offline';
     }
-    const send = (obj) => ws.send(obj);
+
+    $('pair-code').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); $('pair-err').textContent = ''; });
+    $('pair-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try { const tv = await pair($('pair-code').value); toast(`verbunden mit ${tvLabel(tv)}`); }
+      catch (err) { $('pair-err').textContent = err.message; }
+    });
+    $('conn-chip').addEventListener('click', () => { if (AP.getTv() && confirm('anderen fernseher wählen?')) unpair(); });
+    $('tv-switch').addEventListener('click', () => unpair());
+    $('tv-name-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try { const { tv } = await api('/api/tv/name', { name: $('tv-name').value.trim() }); toast(tv.name ? `tv heißt jetzt „${tv.name}“` : 'name entfernt'); $('tv-name').blur(); }
+      catch (err) { toast('✗ ' + err.message, 4000); }
+    });
 
     // ── render ──
     function renderAll() {
       if (!S) return;
       if (document.activeElement !== $('profile-name')) $('profile-name').value = S.settings.profile || '';
       loadProfile(false);
-      $('conn-text').textContent = ws.open ? `tv ${S.watchers}` : 'offline';
+      $('conn-text').textContent = ws && ws.open ? tvLabel(S.tv) : 'offline';
+      if (S.tv) {
+        $('tv-code').textContent = S.tv.id;
+        if (document.activeElement !== $('tv-name')) $('tv-name').value = S.tv.name || '';
+        $('tv-watchers').textContent = S.watchers ? `${S.watchers} bildschirm${S.watchers === 1 ? '' : 'e'} an` : 'tv ist aus';
+      }
       renderContinue();
       renderAnime();
       renderRemote();
@@ -581,9 +673,20 @@
 
     // ── boot ──
     const params = new URLSearchParams(location.search);
-    if (params.get('url')) { $('q').value = params.get('url'); loadAnime(params.get('url')); }
-    else { try { const t = localStorage.getItem('aniplay:tab'); if (t) showTab(t); } catch {} }
-    api('/api/state').then((s) => { S = s; pb = { ...pb, ...s.playback }; renderAll(); }).catch(() => {});
+    (async function boot() {
+      let code = params.get('s');
+      if (code) history.replaceState(null, '', location.pathname + (params.get('url') ? `?url=${encodeURIComponent(params.get('url'))}` : ''));
+      if (!code) { try { code = localStorage.getItem(REMOTE_KEY); } catch {} }
+      if (!code) return showPairing();
+      try {
+        await pair(code);
+      } catch (e) {
+        return showPairing(e.code === 'no_tv' ? `kein fernseher mit dem code ${String(code).toUpperCase()} – code auf dem tv prüfen` : e.message);
+      }
+      if (params.get('url')) { $('q').value = params.get('url'); loadAnime(params.get('url')); }
+      else { try { const t = localStorage.getItem('aniplay:tab'); if (t) showTab(t); } catch {} }
+      api('/api/state').then((s) => { S = s; pb = { ...pb, ...s.playback }; renderAll(); }).catch(() => {});
+    })();
   </script>
 </body>
 </html>

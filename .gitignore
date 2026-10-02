@@ -1,6 +1,7 @@
 node_modules/
 data/
 .env
-# local debugging leftovers with scraped third-party pages
-scripts/
+# local debugging leftovers with scraped third-party pages; only the pi setup is part of the repo
+scripts/*
+!scripts/setup-pi.sh
 .claude/

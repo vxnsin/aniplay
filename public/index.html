@@ -60,7 +60,7 @@
         <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">handy verbinden</span></div>
         <div class="win-body" style="text-align: center;">
           <div class="qr"><img src="/api/qr.svg" alt="QR-Code zur Fernbedienung" /></div>
-          <p class="muted sm" style="margin: 10px 0 0;">qr scannen oder die adresse oben eintippen.</p>
+          <p class="muted sm" style="margin: 10px 0 0;">am besten den qr-code direkt auf dem fernseher scannen – der verbindet mit genau diesem tv.<br />dieser hier öffnet die fernbedienung, dort gibst du den code vom tv ein.</p>
         </div>
       </section>
     </main>
@@ -80,7 +80,7 @@
     fetch('/api/info').then((r) => r.json()).then((i) => {
       document.getElementById('watcher-url').textContent = i.watcherUrl;
       document.getElementById('controller-url').textContent = i.controllerUrl;
-      document.getElementById('conn').textContent = `tv: ${i.watchers} · remote: ${i.controllers}`;
+      document.getElementById('conn').textContent = i.tvs === 1 ? '1 fernseher aktiv' : `${i.tvs} fernseher aktiv`;
     }).catch(() => {});
   </script>
 </body>

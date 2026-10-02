@@ -25,6 +25,8 @@
     .pair-url { font-size: clamp(14px, 2vw, 20px); color: var(--accent-2); word-break: break-all; font-family: var(--font-pixel); }
     .pair-steps { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink-soft); }
     .pair-steps li { margin: 2px 0; }
+    .tv-code { font-family: var(--font-pixel); font-size: clamp(34px, 6vw, 56px); line-height: 1; letter-spacing: 0.18em; color: var(--accent); margin: 2px 0 6px; }
+    .tv-name { font-size: 13px; color: var(--ink-soft); }
     #idle-status { font-size: 14px; }
     .last { display: flex; gap: 10px; align-items: center; font-size: 12px; }
     .last .poster { width: 34px; }
@@ -78,15 +80,16 @@
     </div>
 
     <div class="win pair">
-      <div class="win-title" style="grid-column: 1 / -1;"><span class="dots"><i></i><i></i><i></i></span><span class="title">handy verbinden</span><span class="right row"><span class="status-dot" id="ctl-dot"></span><span id="ctl-count">0 remotes</span></span></div>
-      <div class="win-body" style="display: grid; place-items: center;"><div class="qr"><img id="qr" src="/api/qr.svg" alt="QR-Code zur Fernbedienung" /></div></div>
+      <div class="win-title" style="grid-column: 1 / -1;"><span class="dots"><i></i><i></i><i></i></span><span class="title" id="pair-title">handy verbinden</span><span class="right row"><span class="status-dot" id="ctl-dot"></span><span id="ctl-count">0 remotes</span></span></div>
+      <div class="win-body" style="display: grid; place-items: center;"><div class="qr"><img id="qr" alt="QR-Code zur Fernbedienung dieses Fernsehers" /></div></div>
       <div class="win-body">
-        <div class="pixel muted sm">fernbedienung öffnen:</div>
-        <div class="pair-url" id="pair-url">…</div>
+        <div class="pixel muted sm">code dieses fernsehers</div>
+        <div class="tv-code" id="tv-code">····</div>
+        <div class="tv-name" id="tv-name"></div>
         <ol class="pair-steps">
-          <li>qr scannen oder adresse am handy eingeben</li>
-          <li>anime suchen, episode antippen</li>
-          <li>läuft hier. pause, spulen, lautstärke vom handy.</li>
+          <li>qr-code mit dem handy scannen</li>
+          <li>oder <span class="pair-url" id="pair-url" style="font-size: 13px;">…</span> öffnen und den code eingeben</li>
+          <li>jeder fernseher hat seinen eigenen code und verlauf – andere handys steuern nur ihren tv</li>
         </ol>
         <hr class="dotted-hr" />
         <div id="idle-status" class="row"><span class="blink accent">▮</span> <span id="idle-text">warte auf fernbedienung …</span></div>
@@ -152,25 +155,58 @@
     let errorReported = false;
     let userInteracted = false;
 
-    // ── pairing info ──
-    fetch('/api/info').then((r) => r.json()).then((i) => {
-      $('pair-url').textContent = i.controllerUrl.replace(/^https?:\/\//, '');
-    }).catch(() => {});
+    // ── this tv's session: keep its code across reloads (?s=CODE overrides, e.g. to mirror another tv) ──
+    const TV_KEY = 'aniplay:tv';
+    let ws = null;
+    const send = (type, extra = {}) => ws && ws.send({ type, ...extra });
 
-    // ── websocket ──
-    const ws = AP.connectWs('watcher', {
-      onOpen() { setStatus('', false); $('hud-dot').className = 'status-dot on'; },
-      onClose() { setStatus('verbindung zum server verloren – verbinde neu …', true); $('hud-dot').className = 'status-dot off'; },
-      onMessage: handle,
-    });
-    const send = (type, extra = {}) => ws.send({ type, ...extra });
+    function showTv(tv, info) {
+      $('tv-code').textContent = tv.id;
+      $('tv-name').textContent = tv.name ? `„${tv.name}“` : '';
+      $('pair-title').textContent = tv.name ? `handy verbinden · ${tv.name}` : 'handy verbinden';
+      if (info) {
+        $('qr').src = `/api/qr.svg?s=${encodeURIComponent(tv.id)}`;
+        $('pair-url').textContent = info.base.replace(/^https?:\/\//, '') + '/controller';
+      }
+      document.title = tv.name ? `aniplay · tv ${tv.name}` : `aniplay · tv ${tv.id}`;
+    }
+
+    async function registerTv() {
+      const fromUrl = new URLSearchParams(location.search).get('s');
+      let saved = null;
+      try { saved = localStorage.getItem(TV_KEY); } catch {}
+      const r = await fetch('/api/tv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: fromUrl || saved || '' }) });
+      const { tv, ...info } = await r.json();
+      try { localStorage.setItem(TV_KEY, tv.id); } catch {}
+      AP.setTv(tv.id);
+      showTv(tv, info);
+      return tv;
+    }
+
+    (async function init() {
+      try {
+        await registerTv();
+      } catch {
+        setStatus('server nicht erreichbar – neuer versuch in 5 s …', true);
+        return setTimeout(init, 5000);
+      }
+      ws = AP.connectWs('watcher', {
+        onOpen() { setStatus('', false); $('hud-dot').className = 'status-dot on'; },
+        onClose() { setStatus('verbindung zum server verloren – verbinde neu …', true); $('hud-dot').className = 'status-dot off'; },
+        // the code is gone (database reset): forget it and register again
+        onNoTv() { try { localStorage.removeItem(TV_KEY); } catch {} location.replace('/watcher'); },
+        onMessage: handle,
+      });
+      loadLastWatched();
+    })();
 
     function handle(msg) {
       switch (msg.type) {
         case 'sync_state':
           setControllers(msg.controllers || 0);
-          if (msg.controllerUrl) $('pair-url').textContent = msg.controllerUrl.replace(/^https?:\/\//, '');
+          if (msg.tv) showTv(msg.tv);
           break;
+        case 'tv': if (msg.tv) showTv(msg.tv); break;
         case 'controllers': setControllers(msg.count || 0); break;
         case 'anime_loaded':
           toast(`${msg.title} geladen – wähle eine episode am handy`);
@@ -450,8 +486,8 @@
       if (mode === 'native' && !video.paused) { showBadge(); showSeekline(); cursorTimer = setTimeout(() => document.body.classList.add('hide-cursor'), 2500); }
     });
 
-    // last watched (shown on the idle screen)
-    fetch('/api/history').then((r) => r.json()).then(({ history }) => {
+    // last watched on this tv (shown on the idle screen)
+    const loadLastWatched = () => AP.api('/api/history').then(({ history }) => {
       const h = history && history[0];
       if (!h) return;
       $('last').classList.remove('hidden');

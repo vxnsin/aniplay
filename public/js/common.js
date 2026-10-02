@@ -108,15 +108,20 @@
   const LANG_LABEL = { 1: 'Deutsch', 2: 'Eng Sub', 3: 'Ger Sub', 4: 'English' };
 
   // ── api ──
+  // the tv session this page belongs to; every request and the websocket carry it
+  let tvCode = null;
+  const setTv = (code) => { tvCode = code ? String(code).toUpperCase() : null; };
+  const getTv = () => tvCode;
+
   async function api(path, body, method) {
     const res = await fetch(path, {
       method: method || (body ? 'POST' : 'GET'),
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...(tvCode ? { 'X-TV': tvCode } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     let data = null;
     try { data = await res.json(); } catch {}
-    if (!res.ok || (data && data.error)) throw new Error((data && data.error) || `HTTP ${res.status}`);
+    if (!res.ok || (data && data.error)) throw Object.assign(new Error((data && data.error) || `HTTP ${res.status}`), { code: data && data.code, status: res.status });
     return data;
   }
   // browsers word network failures as "Load failed" (Safari) or "Failed to fetch" (Chrome); say what it means
@@ -138,9 +143,14 @@
     let ws, retry = 1000, closedByUs = false;
     const state = { send(obj) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)); }, get open() { return !!ws && ws.readyState === WebSocket.OPEN; } };
     function open() {
-      ws = new WebSocket(`${proto}://${location.host}/?role=${role}`);
+      ws = new WebSocket(`${proto}://${location.host}/?role=${role}&s=${encodeURIComponent(tvCode || '')}`);
       ws.onopen = () => { retry = 1000; handlers.onOpen && handlers.onOpen(); };
-      ws.onclose = () => { handlers.onClose && handlers.onClose(); if (!closedByUs) setTimeout(open, retry), (retry = Math.min(retry * 1.5, 8000)); };
+      ws.onclose = (e) => {
+        // 4004: this tv code does not exist (any more) – no point in reconnecting
+        if (e.code === 4004) { closedByUs = true; handlers.onNoTv && handlers.onNoTv(); return; }
+        handlers.onClose && handlers.onClose();
+        if (!closedByUs) setTimeout(open, retry), (retry = Math.min(retry * 1.5, 8000));
+      };
       ws.onerror = () => {};
       ws.onmessage = (e) => { try { handlers.onMessage(JSON.parse(e.data)); } catch (err) { console.warn('ws message', err); } };
     }
@@ -149,5 +159,5 @@
     return state;
   }
 
-  window.AP = { applySavedTheme, toggleTheme, updateThemeButtons, toast, fmtTime, epLabel, esc, api: apiFriendly, connectWs, icon, setIcon, LANG_SHORT, LANG_LABEL };
+  window.AP = { setTv, getTv, applySavedTheme, toggleTheme, updateThemeButtons, toast, fmtTime, epLabel, esc, api: apiFriendly, connectWs, icon, setIcon, LANG_SHORT, LANG_LABEL };
 })();
