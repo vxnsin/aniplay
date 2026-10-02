@@ -1,0 +1,11 @@
+{
+  "theme": "spring",
+  "repo": "vxnsin/aniplay",
+  "cards": [
+    { "type": "repo", "link": "https://github.com/vxnsin/aniplay" },
+    { "type": "button", "id": "nav-start", "label": "loslegen →", "link": "https://github.com/vxnsin/aniplay#loslegen" },
+    { "type": "button", "id": "nav-aniwatch", "label": "aniwatch", "link": "https://github.com/vxnsin/aniwatch" },
+    { "type": "commits", "link": "https://github.com/vxnsin/aniplay/commits" },
+    { "type": "contributors", "link": "https://github.com/vxnsin/aniplay/graphs/contributors" }
+  ]
+}

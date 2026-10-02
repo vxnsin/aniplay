@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#f4ecf2" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#17121c" media="(prefers-color-scheme: dark)" />
+  <title>aniplay · remote</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <style>
+    .page { max-width: 560px; padding-bottom: 40px; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* search */
+    .search-row { display: flex; gap: 8px; }
+    .results { margin-top: 12px; }
+    .cont { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .cont-item { min-width: 0; max-width: 100%; }
+    .cont-item { display: flex; gap: 10px; align-items: center; padding: 6px; border: 1px solid var(--line); background: var(--paper-2); cursor: pointer; }
+    .cont-item:hover { background: var(--accent-soft); }
+    .cont-item .poster { width: 40px; flex-shrink: 0; }
+    .cont-item .body { flex: 1; min-width: 0; font-size: 12px; }
+    .cont-item .del { background: none; border: 0; color: var(--ink-soft); cursor: pointer; padding: 4px 6px; font-size: 14px; }
+    .cont-item .del:hover { color: var(--dnd); }
+
+    /* anime */
+    .anime-head { display: flex; gap: 12px; }
+    .anime-head .poster { width: 92px; flex-shrink: 0; }
+    .anime-head h2 { margin: 0 0 4px; font-family: var(--font-pixel); font-weight: 400; font-size: 18px; line-height: 1.25; }
+    .desc { font-size: 12px; color: var(--ink-soft); margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .desc.open { -webkit-line-clamp: unset; }
+    .seasons { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* remote */
+    .now { display: flex; gap: 12px; align-items: center; }
+    .now .poster { width: 56px; flex-shrink: 0; }
+    .now .t1 { font-family: var(--font-pixel); font-size: 15px; line-height: 1.3; }
+    .now .t2 { font-size: 12px; color: var(--ink-soft); }
+    .times { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .ctrl-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .ctrl-grid .btn { padding: 10px 4px; font-size: 18px; }
+    .ctrl-grid .btn.main { font-size: 26px; background: var(--accent-soft); border-color: var(--accent); }
+    .ctrl-grid .lbl { display: block; font-size: 9px; color: var(--ink-soft); font-family: var(--font-mono); margin-top: 2px; }
+    .vol { display: flex; align-items: center; gap: 10px; }
+    .vol input { flex: 1; accent-color: var(--accent); }
+    .toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+    .switch { width: 42px; height: 22px; border: 1.5px solid var(--line); background: var(--paper-2); position: relative; cursor: pointer; flex-shrink: 0; }
+    .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 15px; height: 15px; background: var(--ink-soft); transition: left 0.15s, background 0.15s; }
+    .switch.on { border-color: var(--accent); }
+    .switch.on::after { left: 22px; background: var(--accent); }
+    .embed-note { font-size: 12px; padding: 8px 10px; border: 1px dashed var(--line); background: var(--paper-2); }
+    .section-label { font-family: var(--font-pixel); font-size: 12px; color: var(--ink-soft); margin: 0 0 6px; }
+    .conn-chip { font-size: 11px; }
+    .busy { display: none; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-soft); padding: 6px 0 0; }
+    .busy.show { display: flex; }
+    .empty-note { font-size: 12px; color: var(--ink-soft); text-align: center; padding: 18px 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1><a href="/">aniplay</a></h1>
+      <div class="site-sub"><span class="accent-2">アニプレイ</span> · fernbedienung</div>
+    </header>
+
+    <nav class="nav-tabs" aria-label="bereiche">
+      <button class="tab active" data-tab="search" type="button">suche</button>
+      <button class="tab" data-tab="anime" type="button" id="tab-anime">anime</button>
+      <button class="tab" data-tab="remote" type="button" id="tab-remote">remote</button>
+      <span class="spacer"></span>
+      <span class="chip conn-chip" id="conn-chip" style="align-self: center; margin-bottom: 4px;"><span class="status-dot" id="conn-dot"></span><span id="conn-text">verbinde …</span></span>
+    </nav>
+
+    <main class="win" style="min-height: 320px;">
+      <div class="win-body">
+
+        <!-- ───────── suche ───────── -->
+        <section class="panel active" id="panel-search">
+          <form class="search-row" id="search-form" autocomplete="off">
+            <input class="input" id="q" placeholder="anime suchen oder aniworld-link einfügen …" autocapitalize="none" autocorrect="off" spellcheck="false" />
+            <button class="btn" type="submit">los</button>
+          </form>
+          <div class="busy" id="search-busy"><span class="blink">▮</span> suche …</div>
+          <ul class="poster-grid results" id="results"></ul>
+
+          <div class="win win-dashed" id="continue-box" style="margin-top: 16px;">
+            <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">weiterschauen</span></div>
+            <div class="win-body">
+              <div class="cont" id="continue"></div>
+              <div class="empty-note" id="continue-empty">noch nichts geschaut. such dir oben was raus (๑˃ᴗ˂)ﻭ</div>
+            </div>
+          </div>
+
+          <!-- aniworld profile (optional) -->
+          <div class="win win-dashed" style="margin-top: 16px;">
+            <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">aniworld-profil</span><span class="right" id="profile-stats"></span></div>
+            <div class="win-body">
+              <form class="search-row" id="profile-form" autocomplete="off">
+                <input class="input" id="profile-name" placeholder="dein aniworld-name (optional)" autocapitalize="none" autocorrect="off" spellcheck="false" />
+                <button class="btn" type="submit" id="profile-save">ok</button>
+              </form>
+              <p class="xs muted" style="margin: 6px 0 0;">liest dein öffentliches profil: zuletzt geschaut, watchlist, abos. gesehene folgen werden in der episodenliste markiert.</p>
+              <div class="busy" id="profile-busy"><span class="blink">▮</span> lade profil …</div>
+            </div>
+          </div>
+
+          <div id="profile-view" class="hidden">
+            <div class="win win-dashed" style="margin-top: 16px;">
+              <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">zuletzt geschaut</span><span class="right" id="p-recent-count"></span></div>
+              <div class="win-body"><ul class="poster-grid" id="p-recent"></ul></div>
+            </div>
+            <div class="win win-dashed" style="margin-top: 16px;">
+              <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">watchlist</span><span class="right" id="p-watchlist-count"></span></div>
+              <div class="win-body"><ul class="poster-grid" id="p-watchlist"></ul><button class="btn sm hidden" type="button" id="p-watchlist-more" style="margin-top: 10px;">alle anzeigen</button></div>
+            </div>
+            <div class="win win-dashed" style="margin-top: 16px;">
+              <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">abonniert</span><span class="right" id="p-subscribed-count"></span></div>
+              <div class="win-body"><ul class="poster-grid" id="p-subscribed"></ul><button class="btn sm hidden" type="button" id="p-subscribed-more" style="margin-top: 10px;">alle anzeigen</button></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ───────── anime ───────── -->
+        <section class="panel" id="panel-anime">
+          <div class="empty-note" id="anime-empty">kein anime geladen. nutze die suche.</div>
+          <div id="anime-view" class="hidden">
+            <div class="anime-head">
+              <div class="poster"><img id="a-cover" alt="" /></div>
+              <div style="min-width: 0; flex: 1;">
+                <h2 id="a-title"></h2>
+                <div class="row wrap xs" id="a-meta"></div>
+                <p class="desc" id="a-desc" onclick="this.classList.toggle('open')"></p>
+              </div>
+            </div>
+            <hr class="dotted-hr" />
+            <p class="section-label">staffeln</p>
+            <div class="seasons" id="seasons"></div>
+            <hr class="dotted-hr" />
+            <div class="row between">
+              <p class="section-label" style="margin: 0;">episoden <span class="muted" id="ep-count"></span></p>
+              <span class="xs muted" id="ep-lang-hint"></span>
+            </div>
+            <div class="busy" id="ep-busy"><span class="blink">▮</span> lade episoden …</div>
+            <ul class="list" id="episodes" style="margin-top: 8px;"></ul>
+          </div>
+        </section>
+
+        <!-- ───────── remote ───────── -->
+        <section class="panel" id="panel-remote">
+          <div class="empty-note" id="remote-empty">es läuft nichts. wähle eine episode.</div>
+          <div id="remote-view" class="hidden">
+            <div class="now">
+              <div class="poster"><img id="r-cover" alt="" /></div>
+              <div style="min-width: 0; flex: 1;">
+                <div class="t1" id="r-anime"></div>
+                <div class="t2 truncate" id="r-episode"></div>
+                <div class="row wrap" style="margin-top: 4px;"><span class="chip accent sm" id="r-hoster"></span><span class="chip sm" id="r-lang"></span><span class="chip sm muted" id="r-mode"></span></div>
+              </div>
+            </div>
+
+            <div style="margin-top: 12px;">
+              <div class="progress clickable" id="seekbar"><i id="seekfill" style="width: 0%"></i></div>
+              <div class="times"><span id="t-cur">0:00</span><span id="t-dur">0:00</span></div>
+            </div>
+
+            <div class="embed-note hidden" id="embed-note"><i data-ico="warn"></i> dieser hoster läuft als iframe – steuerung geht nur direkt am tv. wähle unten einen anderen hoster für volle kontrolle.</div>
+
+            <div class="ctrl-grid" style="margin-top: 12px;">
+              <button class="btn" type="button" data-cmd="prev" title="vorherige"><i data-ico="prev"></i><span class="lbl">zurück</span></button>
+              <button class="btn" type="button" data-seek="-10"><i data-ico="back10"></i><span class="lbl">-10s</span></button>
+              <button class="btn main" type="button" id="btn-toggle" data-cmd="toggle"><i data-ico="play" class="lg"></i><span class="lbl" id="toggle-lbl">play</span></button>
+              <button class="btn" type="button" data-seek="10"><i data-ico="fwd10"></i><span class="lbl">+10s</span></button>
+              <button class="btn" type="button" data-cmd="next" title="nächste"><i data-ico="next"></i><span class="lbl">weiter</span></button>
+              <button class="btn" type="button" data-seek="-60"><i data-ico="rew"></i><span class="lbl">-1m</span></button>
+              <button class="btn" type="button" data-seek="-30"><i data-ico="rew"></i><span class="lbl">-30s</span></button>
+              <button class="btn" type="button" data-cmd="fullscreen"><i data-ico="fullscreen"></i><span class="lbl">vollbild</span></button>
+              <button class="btn" type="button" data-seek="30"><i data-ico="fwd"></i><span class="lbl">+30s</span></button>
+              <button class="btn" type="button" data-seek="85"><i data-ico="fwd"></i><span class="lbl">+85s</span></button>
+            </div>
+
+            <div class="vol" style="margin-top: 12px;">
+              <button class="btn icon" type="button" id="btn-mute" data-cmd="mute" title="stumm"><i data-ico="volume" class="lg"></i></button>
+              <input type="range" id="vol" min="0" max="100" value="100" />
+              <span class="xs muted" id="vol-val" style="width: 36px; text-align: right;">100%</span>
+            </div>
+
+            <hr class="dotted-hr" />
+            <p class="section-label">sprache</p>
+            <div class="row wrap" id="langs"></div>
+            <p class="section-label" style="margin-top: 10px;">hoster</p>
+            <div class="row wrap" id="hosters"></div>
+
+            <hr class="dotted-hr" />
+            <div class="toggle"><span>nächste episode automatisch starten</span><span class="switch" id="autoplay" role="switch"></span></div>
+
+            <hr class="dotted-hr" />
+            <div class="row wrap">
+              <button class="btn sm" type="button" data-cmd="sync"><i data-ico="sync"></i> tv synchronisieren</button>
+              <button class="btn sm" type="button" id="btn-restart"><i data-ico="restart"></i> von vorne</button>
+              <button class="btn sm" type="button" data-cmd="stop"><i data-ico="stop"></i> stop</button>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <footer class="win win-dashed" style="margin-top: 20px;">
+      <div class="win-body row between wrap sm">
+        <span class="muted">aniplay · credits <a href="https://vensin.dev" target="_blank" rel="noreferrer">vensin</a></span>
+        <span class="row"><a href="/watcher" class="btn sm"><i data-ico="tv"></i> tv öffnen</a><button class="btn sm" type="button" data-theme-toggle>…</button></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    const { toast, fmtTime, epLabel, esc, api, LANG_SHORT, LANG_LABEL } = AP;
+    AP.applySavedTheme();
+    AP.updateThemeButtons();
+
+    const $ = (id) => document.getElementById(id);
+    let S = null; // server snapshot
+    let P = null; // aniworld profile (optional); watchedHrefs is a Set
+    let pb = { isPlaying: false, currentTime: 0, duration: 0, volume: 1, muted: false };
+    let selectedLang = null; // lang filter chosen on the remote
+    let visitedTabs = new Set(['search']);
+
+    // ── tabs ──
+    function showTab(name) {
+      document.querySelectorAll('.tab[data-tab]').forEach((t) => t.classList.toggle('active', t.dataset.tab === name));
+      document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === `panel-${name}`));
+      visitedTabs.add(name);
+      try { localStorage.setItem('aniplay:tab', name); } catch {}
+    }
+    document.querySelectorAll('.tab[data-tab]').forEach((t) => t.addEventListener('click', () => showTab(t.dataset.tab)));
+
+    // ── websocket ──
+    const ws = AP.connectWs('controller', {
+      onOpen() { setConn(true); },
+      onClose() { setConn(false); },
+      onMessage(msg) {
+        if (msg.type === 'state') { S = msg.state; pb = { ...pb, ...S.playback }; renderAll(); }
+        else if (msg.type === 'playback') { pb = { ...pb, ...msg.playback }; renderPlayback(); }
+        else if (msg.type === 'toast') toast(msg.message, 3500);
+      },
+    });
+    function setConn(on) {
+      $('conn-dot').className = 'status-dot ' + (on ? 'on' : 'off');
+      $('conn-text').textContent = on ? (S ? `tv ${S.watchers}` : 'verbunden') : 'offline';
+    }
+    const send = (obj) => ws.send(obj);
+
+    // ── render ──
+    function renderAll() {
+      if (!S) return;
+      if (document.activeElement !== $('profile-name')) $('profile-name').value = S.settings.profile || '';
+      loadProfile(false);
+      $('conn-text').textContent = ws.open ? `tv ${S.watchers}` : 'offline';
+      renderContinue();
+      renderAnime();
+      renderRemote();
+      renderPlayback();
+      $('tab-anime').innerHTML = S.anime ? `anime` : 'anime';
+      $('tab-remote').innerHTML = S.stream ? `remote <span class="count">●</span>` : 'remote';
+    }
+
+    function renderContinue() {
+      const list = S.history || [];
+      $('continue').innerHTML = list.map((h) => {
+        const pct = h.duration ? Math.min(100, Math.round((h.position / h.duration) * 100)) : 0;
+        const ep = h.episodeNum != null ? epLabel({ seasonNum: h.seasonNum, num: h.episodeNum }) : '';
+        return `<div class="cont-item" data-slug="${esc(h.slug)}">
+          <div class="poster">${h.cover ? `<img src="${esc(h.cover)}" alt="" loading="lazy">` : '<div class="empty">–</div>'}</div>
+          <div class="body">
+            <div class="truncate">${esc(h.title)}</div>
+            <div class="xs muted truncate">${esc(ep)}${h.episodeTitle ? ' · ' + esc(h.episodeTitle) : ''}${h.position > 20 ? ` · ${fmtTime(h.position)}` : ''}</div>
+            <div class="progress" style="margin-top: 4px; height: 4px;"><i style="width: ${pct}%"></i></div>
+          </div>
+          <button class="del" type="button" title="aus liste entfernen" data-del="${esc(h.slug)}">×</button>
+        </div>`;
+      }).join('');
+      $('continue-empty').classList.toggle('hidden', list.length > 0);
+    }
+
+    function renderAnime() {
+      const a = S.anime;
+      $('anime-empty').classList.toggle('hidden', !!a);
+      $('anime-view').classList.toggle('hidden', !a);
+      if (!a) return;
+      $('a-cover').src = a.cover || '';
+      $('a-title').textContent = a.title;
+      const meta = [];
+      if (a.year) meta.push(`<span class="chip">${esc(a.year)}</span>`);
+      if (a.fsk) meta.push(`<span class="chip">fsk ${esc(a.fsk)}</span>`);
+      if (a.rating) meta.push(`<span class="chip">★ ${esc(a.rating)}/5</span>`);
+      (a.genres || []).filter((g) => !/^(ger|gersub|engsub|eng)$/i.test(g)).slice(0, 4).forEach((g) => meta.push(`<span class="chip muted">${esc(g.toLowerCase())}</span>`));
+      $('a-meta').innerHTML = meta.join('');
+      $('a-desc').textContent = a.description || '';
+      $('seasons').innerHTML = a.seasons.map((s) => `<button class="chip ${s.href === S.seasonHref ? 'active' : ''}" type="button" data-season="${esc(s.href)}">${esc(s.label.toLowerCase())}</button>`).join('');
+      const eps = S.episodes || [];
+      $('ep-count').textContent = eps.length ? `· ${eps.length}` : '';
+      const hist = (S.history || []).find((h) => h.slug === a.slug);
+      const seenSet = P && P.watchedHrefs ? P.watchedHrefs : null;
+      $('episodes').innerHTML = eps.map((e) => {
+        const playing = S.episode && S.episode.href === e.href;
+        const pr = (S.progress || {})[e.href];
+        const pct = pr && pr.duration ? Math.min(100, Math.round((pr.position / pr.duration) * 100)) : 0;
+        const seen = !playing && ((pr && pr.finished) || (seenSet && seenSet.has(e.href)));
+        const partial = !playing && !seen && pr && pr.position > 20;
+        return `<li class="ep ${playing ? 'playing' : ''} ${seen ? 'seen' : ''}" data-href="${esc(e.href)}">
+          <span class="num">${e.seasonNum === 0 ? 'F' : ''}${e.num}</span>
+          <span class="body"><span class="title">${esc(e.title)}</span>${e.titleEn ? `<span class="sub">${esc(e.titleEn)}</span>` : ''}${partial ? `<span class="progress" style="display:block;height:3px;margin-top:4px;"><i style="width:${pct}%"></i></span><span class="sub">weiter bei ${fmtTime(pr.position)}</span>` : ''}</span>
+          <span class="langs">${(e.langs || []).map((l) => `<span class="lang ${l === 1 ? 'de' : ''}">${LANG_SHORT[l] || l}</span>`).join('')}</span>
+          <span class="muted" title="${seen ? 'gesehen' : ''}">${playing ? AP.icon('play') : seen ? '✓' : AP.icon('chev')}</span>
+        </li>`;
+      }).join('');
+      $('ep-lang-hint').textContent = `bevorzugt: ${LANG_LABEL[S.settings.langKey] || 'Deutsch'}`;
+    }
+
+    function renderRemote() {
+      const has = !!(S.stream && S.episode);
+      $('remote-empty').classList.toggle('hidden', has);
+      $('remote-view').classList.toggle('hidden', !has);
+      if (!has) return;
+      $('r-cover').src = S.anime?.cover || '';
+      $('r-anime').textContent = S.anime?.title || '';
+      $('r-episode').textContent = `${epLabel(S.episode)} · ${S.episode.title}`;
+      $('r-hoster').textContent = S.stream.hosterName;
+      $('r-lang').textContent = S.stream.langLabel || LANG_LABEL[S.stream.langKey] || '';
+      $('r-mode').textContent = S.stream.streamType === 'embed' ? 'iframe' : S.stream.streamType;
+      const isEmbed = S.stream.streamType === 'embed';
+      $('embed-note').classList.toggle('hidden', !isEmbed);
+
+      // language chips: only languages that exist for this episode
+      const langs = [...new Set((S.hosters || []).map((h) => h.langKey))].sort((a, b) => [1, 3, 2, 4].indexOf(a) - [1, 3, 2, 4].indexOf(b));
+      const active = selectedLang && langs.includes(selectedLang) ? selectedLang : S.stream.langKey;
+      selectedLang = active;
+      $('langs').innerHTML = langs.map((l) => `<button class="chip ${l === active ? 'active' : ''}" type="button" data-lang="${l}">${esc(LANG_LABEL[l] || l)}</button>`).join('');
+      $('hosters').innerHTML = (S.hosters || []).filter((h) => h.langKey === active).map((h) =>
+        `<button class="chip ${h.id === S.stream.hosterId ? 'active' : ''}" type="button" data-hoster="${esc(h.id)}">${esc(h.hosterName)}</button>`).join('') || '<span class="xs muted">keine hoster in dieser sprache</span>';
+
+      $('autoplay').classList.toggle('on', !!S.settings.autoplayNext);
+    }
+
+    function renderPlayback() {
+      AP.setIcon($('btn-toggle'), pb.isPlaying ? 'pause' : 'play');
+      $('toggle-lbl').textContent = pb.isPlaying ? 'pause' : 'play';
+      const pct = pb.duration ? Math.min(100, (pb.currentTime / pb.duration) * 100) : 0;
+      $('seekfill').style.width = pct + '%';
+      $('t-cur').textContent = fmtTime(pb.currentTime);
+      $('t-dur').textContent = pb.duration ? fmtTime(pb.duration) : '–:––';
+      if (document.activeElement !== $('vol')) {
+        $('vol').value = Math.round((pb.volume ?? 1) * 100);
+        $('vol-val').textContent = Math.round((pb.volume ?? 1) * 100) + '%';
+      }
+      AP.setIcon($('btn-mute'), pb.muted ? 'mute' : (pb.volume ?? 1) > 0.5 ? 'volume' : 'volumeLow');
+    }
+
+    // ── actions ──
+    async function loadAnime(url) {
+      $('search-busy').classList.add('show');
+      try {
+        const r = await api('/api/anime', { url });
+        toast(`${r.anime.title} geladen`);
+        showTab('anime');
+        return r;
+      } catch (e) {
+        toast('✗ ' + e.message, 4000);
+      } finally {
+        $('search-busy').classList.remove('show');
+      }
+    }
+
+    $('search-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const q = $('q').value.trim();
+      if (!q) return;
+      if (/aniworld\.to\/anime\/stream\//i.test(q)) return loadAnime(q);
+      $('search-busy').classList.add('show');
+      $('results').innerHTML = '';
+      try {
+        const { results } = await api('/api/search?q=' + encodeURIComponent(q));
+        if (!results.length) toast('nichts gefunden (╥﹏╥)');
+        $('results').innerHTML = results.map((r) => `<li class="poster-card" data-url="${esc(r.url)}" title="${esc(r.description || '')}">
+          <div class="poster">${r.cover ? `<img src="${esc(r.cover)}" alt="" loading="lazy">` : `<div class="empty">${esc(r.title)}</div>`}${r.year ? `<span class="badge">${esc(r.year.split(' ')[0])}</span>` : ''}</div>
+          <div class="name">${esc(r.title)}</div>
+        </li>`).join('');
+      } catch (err) {
+        toast('✗ ' + err.message, 4000);
+      } finally {
+        $('search-busy').classList.remove('show');
+      }
+      $('q').blur();
+    });
+
+    $('results').addEventListener('click', (e) => {
+      const li = e.target.closest('[data-url]');
+      if (li) loadAnime(li.dataset.url);
+    });
+
+    $('continue').addEventListener('click', async (e) => {
+      const del = e.target.closest('[data-del]');
+      if (del) {
+        e.stopPropagation();
+        await api('/api/history/' + encodeURIComponent(del.dataset.del), null, 'DELETE').catch(() => {});
+        return;
+      }
+      const item = e.target.closest('[data-slug]');
+      if (!item) return;
+      const h = (S.history || []).find((x) => x.slug === item.dataset.slug);
+      if (!h) return;
+      const r = await loadAnime(h.url);
+      if (r && h.episodeHref) {
+        // resume where we left off, or start the next episode if the last one was finished
+        const finished = h.finished || (h.duration && h.position >= h.duration * 0.93);
+        if (finished) {
+          const eps = r.episodes || [];
+          const idx = eps.findIndex((x) => x.href === h.episodeHref);
+          const next = eps[idx + 1];
+          if (next) return playEpisode(next.href, { restart: true });
+        }
+        playEpisode(h.episodeHref, {});
+      }
+    });
+
+    $('seasons').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-season]');
+      if (!b) return;
+      $('ep-busy').classList.add('show');
+      try { await api('/api/season', { href: b.dataset.season }); } catch (err) { toast('✗ ' + err.message, 4000); }
+      $('ep-busy').classList.remove('show');
+    });
+
+    async function playEpisode(href, opts = {}) {
+      toast('lade stream …', 6000);
+      try {
+        const r = await api('/api/play', { href, langKey: selectedLang || undefined, ...opts });
+        if (r.superseded) return;
+        toast(`läuft: ${r.stream.hosterName} · ${r.stream.langLabel || ''}${r.seekTo > 20 ? ` · weiter bei ${fmtTime(r.seekTo)}` : ''}`);
+        showTab('remote');
+      } catch (e) {
+        toast('✗ ' + e.message.split('\n')[0], 5000);
+      }
+    }
+    $('episodes').addEventListener('click', (e) => {
+      const li = e.target.closest('[data-href]');
+      if (li) playEpisode(li.dataset.href);
+    });
+
+    $('langs').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-lang]');
+      if (!b || !S.episode) return;
+      selectedLang = parseInt(b.dataset.lang, 10);
+      await api('/api/settings', { langKey: selectedLang }).catch(() => {});
+      toast(`wechsle zu ${LANG_LABEL[selectedLang]} …`, 5000);
+      try { await api('/api/play', { href: S.episode.href, langKey: selectedLang }); } catch (err) { toast('✗ ' + err.message.split('\n')[0], 5000); }
+    });
+
+    $('hosters').addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-hoster]');
+      if (!b) return;
+      toast('wechsle hoster …', 5000);
+      try { const r = await api('/api/hoster', { hosterId: b.dataset.hoster }); if (!r.superseded) toast(`läuft: ${r.stream.hosterName} (${r.stream.streamType})`); }
+      catch (err) { toast('✗ ' + err.message.split('\n')[0], 5000); }
+    });
+
+    $('autoplay').addEventListener('click', async () => {
+      const next = !S.settings.autoplayNext;
+      $('autoplay').classList.toggle('on', next);
+      await api('/api/settings', { autoplayNext: next }).catch(() => {});
+    });
+
+    $('btn-restart').addEventListener('click', () => { if (S.episode) playEpisode(S.episode.href, { restart: true }); });
+
+    // ── aniworld profile ──
+    let profileLoadedFor = null;
+    async function loadProfile(force) {
+      const name = (S && S.settings.profile) || '';
+      if (!name) { P = null; profileLoadedFor = null; $('profile-view').classList.add('hidden'); $('profile-stats').textContent = ''; return; }
+      if (!force && profileLoadedFor === name) return;
+      $('profile-busy').classList.add('show');
+      try {
+        const { profile } = await api('/api/profile');
+        if (!profile) return;
+        P = { ...profile, watchedHrefs: new Set(profile.watchedHrefs || []) };
+        profileLoadedFor = name;
+        renderProfile();
+        renderAnime();
+      } catch (e) {
+        toast('profil: ' + e.message, 4000);
+      } finally {
+        $('profile-busy').classList.remove('show');
+      }
+    }
+    const posterCard = (a, badge) => `<li class="poster-card" data-url="${esc(a.url)}" title="${esc(a.title)}">
+      <div class="poster">${a.cover ? `<img src="${esc(a.cover)}" alt="" loading="lazy">` : `<div class="empty">${esc(a.title)}</div>`}${badge ? `<span class="badge">${esc(badge)}</span>` : ''}</div>
+      <div class="name">${esc(a.title)}</div></li>`;
+    const expanded = { watchlist: false, subscribed: false };
+    function renderProfile() {
+      if (!P) return;
+      $('profile-view').classList.remove('hidden');
+      $('profile-stats').textContent = P.episodes ? `${P.name} · ${P.episodes} folgen` : P.name;
+      $('p-recent-count').textContent = P.recent.length;
+      $('p-recent').innerHTML = P.recent.slice(0, 12).map((a) => posterCard(a, a.episodeNum ? epLabel({ seasonNum: a.seasonNum ?? 1, num: a.episodeNum }) : '')).join('');
+      for (const key of ['watchlist', 'subscribed']) {
+        const list = P[key] || [];
+        $(`p-${key}-count`).textContent = list.length;
+        $(`p-${key}`).innerHTML = (expanded[key] ? list : list.slice(0, 6)).map((a) => posterCard(a)).join('');
+        const more = $(`p-${key}-more`);
+        more.classList.toggle('hidden', list.length <= 6);
+        more.textContent = expanded[key] ? 'weniger anzeigen' : `alle ${list.length} anzeigen`;
+      }
+    }
+    for (const key of ['watchlist', 'subscribed']) {
+      $(`p-${key}-more`).addEventListener('click', () => { expanded[key] = !expanded[key]; renderProfile(); });
+    }
+    $('profile-view').addEventListener('click', (e) => {
+      const li = e.target.closest('[data-url]');
+      if (li) loadAnime(li.dataset.url);
+    });
+    $('profile-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = $('profile-name').value.trim();
+      $('profile-save').disabled = true;
+      $('profile-busy').classList.add('show');
+      try {
+        await api('/api/settings', { profile: name });
+        toast(name ? `profil „${name}“ gespeichert` : 'profil entfernt');
+        if (S) S.settings.profile = name;
+        profileLoadedFor = null;
+        await loadProfile(true);
+      } catch (err) {
+        toast('✗ ' + err.message, 4000);
+      } finally {
+        $('profile-save').disabled = false;
+        $('profile-busy').classList.remove('show');
+      }
+    });
+
+    // ws commands
+    document.addEventListener('click', (e) => {
+      const cmd = e.target.closest('[data-cmd]');
+      if (cmd) {
+        const type = cmd.dataset.cmd;
+        if (type === 'mute') send({ type: 'mute', muted: !pb.muted });
+        else send({ type });
+        if (type === 'toggle') { pb.isPlaying = !pb.isPlaying; renderPlayback(); }
+        if (type === 'sync') toast('tv synchronisiert');
+        return;
+      }
+      const sk = e.target.closest('[data-seek]');
+      if (sk) {
+        const d = parseInt(sk.dataset.seek, 10);
+        send({ type: 'seek', delta: d });
+        pb.currentTime = Math.max(0, pb.currentTime + d);
+        renderPlayback();
+      }
+    });
+
+    $('seekbar').addEventListener('click', (e) => {
+      if (!pb.duration) return;
+      const r = $('seekbar').getBoundingClientRect();
+      const t = ((e.clientX - r.left) / r.width) * pb.duration;
+      send({ type: 'seek_to', time: t });
+      pb.currentTime = t;
+      renderPlayback();
+    });
+
+    $('vol').addEventListener('input', (e) => {
+      const v = parseInt(e.target.value, 10) / 100;
+      $('vol-val').textContent = e.target.value + '%';
+      pb.volume = v;
+      send({ type: 'volume', value: v });
+    });
+
+    // ── boot ──
+    const params = new URLSearchParams(location.search);
+    if (params.get('url')) { $('q').value = params.get('url'); loadAnime(params.get('url')); }
+    else { try { const t = localStorage.getItem('aniplay:tab'); if (t) showTab(t); } catch {} }
+    api('/api/state').then((s) => { S = s; pb = { ...pb, ...s.playback }; renderAll(); }).catch(() => {});
+  </script>
+</body>
+</html>

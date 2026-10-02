@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#17121c" />
+  <title>aniplay · tv</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { cursor: default; }
+    body.hide-cursor { cursor: none; }
+
+    /* idle / pairing screen */
+    #idle { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; padding: 24px; z-index: 10; }
+    #idle.hidden { display: none; }
+    .wordmark { font-family: var(--font-pixel); font-size: clamp(44px, 9vw, 96px); line-height: 1; letter-spacing: 0.04em; color: var(--ink); }
+    .wordmark span { color: var(--accent); }
+    .jp { color: var(--accent-2); font-size: clamp(12px, 1.6vw, 16px); margin-top: 6px; }
+    .pair { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 760px; width: 100%; }
+    @media (min-width: 700px) { .pair { grid-template-columns: 220px 1fr; } }
+    .qr { width: 196px; height: 196px; padding: 8px; background: #fff; border: 1.5px solid var(--line); }
+    .qr img { width: 100%; height: 100%; }
+    .pair-url { font-size: clamp(14px, 2vw, 20px); color: var(--accent-2); word-break: break-all; font-family: var(--font-pixel); }
+    .pair-steps { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink-soft); }
+    .pair-steps li { margin: 2px 0; }
+    #idle-status { font-size: 14px; }
+    .last { display: flex; gap: 10px; align-items: center; font-size: 12px; }
+    .last .poster { width: 34px; }
+
+    /* player */
+    #player { position: fixed; inset: 0; background: #000; z-index: 1; display: none; }
+    #player.active { display: block; }
+    #video, #frame { width: 100%; height: 100%; border: 0; display: block; background: #000; }
+    #video { object-fit: contain; }
+
+    /* overlays */
+    .overlay { position: fixed; z-index: 20; transition: opacity 0.4s; }
+    .overlay.hidden { opacity: 0; pointer-events: none; }
+    #badge { top: 24px; left: 24px; max-width: min(60vw, 560px); }
+    #badge .win-body { display: flex; gap: 12px; align-items: center; padding: 10px 12px; }
+    #badge .poster { width: 48px; flex-shrink: 0; }
+    #badge .t1 { font-family: var(--font-pixel); font-size: 18px; line-height: 1.2; }
+    #badge .t2 { font-size: 12px; color: var(--ink-soft); }
+    #badge .t3 { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+
+    #loading { inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); z-index: 15; }
+    #loading .win { min-width: 280px; }
+    #loading .win-body { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+
+    #hud { right: 24px; top: 24px; display: flex; gap: 8px; align-items: center; }
+    #hud .chip { font-size: 12px; background: var(--paper); }
+
+    #statusbar { left: 24px; bottom: 24px; max-width: 70vw; }
+    #statusbar .win-body { padding: 6px 12px; font-size: 13px; display: flex; gap: 8px; align-items: center; }
+
+    #osd { left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 14px; font-family: var(--font-pixel); font-size: 44px; padding: 12px 28px; background: var(--paper); border: 1.5px solid var(--line); box-shadow: var(--shadow); transition: opacity 0.25s; }
+
+    #seekline { left: 24px; right: 24px; bottom: 24px; }
+    #seekline .times { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink); margin-top: 4px; font-family: var(--font-pixel); text-shadow: 0 0 4px var(--bg); font-variant-numeric: tabular-nums; }
+
+    #upnext { right: 24px; bottom: 24px; width: 360px; max-width: calc(100vw - 48px); }
+    #upnext .win-body { font-size: 13px; }
+    #upnext .big { font-family: var(--font-pixel); font-size: 18px; }
+
+    #fsbtn { position: fixed; right: 24px; bottom: 24px; z-index: 21; }
+    #player.active ~ #fsbtn { display: none; }
+
+  </style>
+</head>
+<body>
+  <!-- ───────── idle / pairing ───────── -->
+  <div id="idle">
+    <div style="text-align: center;">
+      <div class="wordmark">ani<span>play</span></div>
+      <div class="jp">アニプレイ · tv</div>
+    </div>
+
+    <div class="win pair">
+      <div class="win-title" style="grid-column: 1 / -1;"><span class="dots"><i></i><i></i><i></i></span><span class="title">handy verbinden</span><span class="right row"><span class="status-dot" id="ctl-dot"></span><span id="ctl-count">0 remotes</span></span></div>
+      <div class="win-body" style="display: grid; place-items: center;"><div class="qr"><img id="qr" src="/api/qr.svg" alt="QR-Code zur Fernbedienung" /></div></div>
+      <div class="win-body">
+        <div class="pixel muted sm">fernbedienung öffnen:</div>
+        <div class="pair-url" id="pair-url">…</div>
+        <ol class="pair-steps">
+          <li>qr scannen oder adresse am handy eingeben</li>
+          <li>anime suchen, episode antippen</li>
+          <li>läuft hier. pause, spulen, lautstärke vom handy.</li>
+        </ol>
+        <hr class="dotted-hr" />
+        <div id="idle-status" class="row"><span class="blink accent">▮</span> <span id="idle-text">warte auf fernbedienung …</span></div>
+        <div class="last hidden" id="last" style="margin-top: 10px;"></div>
+      </div>
+    </div>
+
+    <div class="muted xs">taste <span class="chip">f</span> = vollbild · <span class="chip">space</span> = pause · <span class="chip">←</span><span class="chip">→</span> = spulen</div>
+  </div>
+
+  <!-- ───────── player ───────── -->
+  <div id="player">
+    <video id="video" playsinline preload="auto"></video>
+    <iframe id="frame" class="hidden" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" referrerpolicy="no-referrer"></iframe>
+  </div>
+
+  <!-- ───────── overlays ───────── -->
+  <div id="loading" class="overlay hidden">
+    <div class="win"><div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">lade …</span></div><div class="win-body"><span class="blink accent">▮</span><span id="loading-text">lade stream …</span></div></div>
+  </div>
+
+  <div id="badge" class="overlay win hidden">
+    <div class="win-body">
+      <div class="poster"><img id="b-cover" alt="" /></div>
+      <div style="min-width: 0;">
+        <div class="t1 truncate" id="b-anime"></div>
+        <div class="t2 truncate" id="b-episode"></div>
+        <div class="t3 truncate" id="b-meta"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="hud" class="overlay hidden"><span class="chip"><span class="status-dot" id="hud-dot"></span><span id="hud-text">remote</span></span></div>
+
+  <div id="seekline" class="overlay hidden"><div class="progress" style="height: 8px; background: var(--paper);"><i id="seekfill" style="width: 0%"></i></div><div class="times"><span id="t-cur">0:00</span><span id="t-dur">0:00</span></div></div>
+
+  <div id="osd" class="overlay hidden"></div>
+
+  <div id="statusbar" class="overlay win hidden"><div class="win-body"><span class="blink accent">▮</span><span id="status-text"></span></div></div>
+
+  <div id="upnext" class="overlay win hidden">
+    <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">als nächstes</span><span class="right" id="upnext-count">8</span></div>
+    <div class="win-body"><div class="big" id="upnext-title"></div><div class="muted xs" style="margin-top: 4px;">startet automatisch · am handy „stop" zum abbrechen</div></div>
+  </div>
+
+  <button class="btn" id="fsbtn" type="button" title="vollbild"><i data-ico="fullscreen"></i> vollbild</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js"></script>
+  <script src="/js/common.js"></script>
+  <script>
+    const { toast, fmtTime, epLabel, esc } = AP;
+    AP.applySavedTheme('dark');
+
+    const $ = (id) => document.getElementById(id);
+    const video = $('video'), frame = $('frame'), player = $('player');
+    let hls = null;
+    let mode = 'idle'; // 'native' | 'embed' | 'idle'
+    let current = null; // last load_stream message
+    let ready = false;
+    let lastTimeSent = 0;
+    let badgeTimer, osdTimer, cursorTimer, upnextTimer, upnextInterval;
+    let triedAlt = false;
+    let errorReported = false;
+    let userInteracted = false;
+
+    // ── pairing info ──
+    fetch('/api/info').then((r) => r.json()).then((i) => {
+      $('pair-url').textContent = i.controllerUrl.replace(/^https?:\/\//, '');
+    }).catch(() => {});
+
+    // ── websocket ──
+    const ws = AP.connectWs('watcher', {
+      onOpen() { setStatus('', false); $('hud-dot').className = 'status-dot on'; },
+      onClose() { setStatus('verbindung zum server verloren – verbinde neu …', true); $('hud-dot').className = 'status-dot off'; },
+      onMessage: handle,
+    });
+    const send = (type, extra = {}) => ws.send({ type, ...extra });
+
+    function handle(msg) {
+      switch (msg.type) {
+        case 'sync_state':
+          setControllers(msg.controllers || 0);
+          if (msg.controllerUrl) $('pair-url').textContent = msg.controllerUrl.replace(/^https?:\/\//, '');
+          break;
+        case 'controllers': setControllers(msg.count || 0); break;
+        case 'anime_loaded':
+          toast(`${msg.title} geladen – wähle eine episode am handy`);
+          $('idle-text').textContent = `${msg.title} · wähle eine episode am handy`;
+          break;
+        case 'status': setStatus(msg.message, !!msg.message); break;
+        case 'load_stream': loadStream(msg); break;
+        case 'stop': stop(); break;
+        case 'play': doPlay(); break;
+        case 'pause': doPause(); break;
+        case 'toggle': video.paused ? doPlay() : doPause(); break;
+        case 'seek': seekBy(msg.delta); break;
+        case 'seek_to': seekTo(msg.time, msg.resume); break;
+        case 'volume': setVolume(msg.value); break;
+        case 'mute': video.muted = !!msg.muted; osd(video.muted ? 'mute' : 'volume'); showSeekline(); break;
+        case 'fullscreen': toggleFullscreen(); break;
+        case 'up_next': showUpNext(msg); break;
+      }
+    }
+
+    function setControllers(n) {
+      $('ctl-dot').className = 'status-dot ' + (n ? 'on' : '');
+      $('ctl-count').textContent = `${n} remote${n === 1 ? '' : 's'}`;
+      $('hud-text').textContent = n ? `${n} remote${n === 1 ? '' : 's'}` : 'keine remote';
+      if (!current) $('idle-text').textContent = n ? 'handy verbunden ✓ · wähle eine episode' : 'warte auf fernbedienung …';
+    }
+    function setStatus(text, show) {
+      $('status-text').textContent = text || '';
+      $('statusbar').classList.toggle('hidden', !show || !text);
+    }
+    function osd(name, text) {
+      $('osd').innerHTML = AP.icon(name) + (text ? `<span>${esc(text)}</span>` : '');
+      $('osd').classList.remove('hidden');
+      clearTimeout(osdTimer);
+      osdTimer = setTimeout(() => $('osd').classList.add('hidden'), 700);
+    }
+    function showBadge(ms = 4500) {
+      $('badge').classList.remove('hidden');
+      $('hud').classList.remove('hidden');
+      clearTimeout(badgeTimer);
+      if (ms) badgeTimer = setTimeout(() => { $('badge').classList.add('hidden'); $('hud').classList.add('hidden'); }, ms);
+    }
+    let seekTimer;
+    function showSeekline(ms = 2500) {
+      $('seekline').classList.remove('hidden');
+      clearTimeout(seekTimer);
+      if (ms) seekTimer = setTimeout(() => $('seekline').classList.add('hidden'), ms);
+    }
+    function updateSeekline() {
+      const d = video.duration || 0;
+      $('seekfill').style.width = d ? Math.min(100, (video.currentTime / d) * 100) + '%' : '0%';
+      $('t-cur').textContent = fmtTime(video.currentTime);
+      $('t-dur').textContent = d ? fmtTime(d) : '–:––';
+    }
+
+    // ── stream loading ──
+    const proxy = (url, referer) => `/api/proxy?r=${encodeURIComponent(referer || '')}&u=${encodeURIComponent(url)}`;
+
+    function destroy() {
+      ready = false;
+      if (hls) { hls.destroy(); hls = null; }
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+      frame.src = 'about:blank';
+    }
+
+    function loadStream(msg) {
+      // the server came back (restart) and re-sends what we are already playing: keep playing, don't reload
+      if (current && ready && mode !== 'idle' && msg.url === current.url && (msg.episode?.href || '') === (current.episode?.href || '')) {
+        current = { ...current, ...msg };
+        send('ready');
+        return;
+      }
+      current = msg;
+      triedAlt = false;
+      errorReported = false;
+      hideUpNext();
+      destroy();
+      $('idle').classList.add('hidden');
+      $('loading').classList.remove('hidden');
+      $('loading-text').textContent = `lade ${msg.hosterName || 'stream'} …`;
+      player.classList.remove('active');
+
+      $('b-cover').src = msg.cover || '';
+      $('b-anime').textContent = msg.animeTitle || '';
+      $('b-episode').textContent = msg.episode ? `${epLabel(msg.episode)} · ${msg.episode.title}` : '';
+      $('b-meta').textContent = [msg.hosterName, msg.langLabel, msg.streamType === 'embed' ? 'iframe' : msg.streamType].filter(Boolean).join(' · ');
+      document.title = `aniplay · ${msg.animeTitle || 'tv'}`;
+
+      if (msg.streamType === 'hls' || msg.streamType === 'mp4') startNative(msg.url, msg.streamType, msg.referer, msg.seekTo || 0, msg.autoplay !== false);
+      else startEmbed(msg.embedUrl || msg.url);
+    }
+
+    function startNative(url, type, referer, seekToTime, autoplay) {
+      mode = 'native';
+      frame.classList.add('hidden');
+      video.classList.remove('hidden');
+      const src = proxy(url, referer);
+
+      const onReady = () => {
+        if (ready) return;
+        ready = true;
+        $('loading').classList.add('hidden');
+        player.classList.add('active');
+        setStatus('', false);
+        showBadge();
+        send('ready');
+        if (seekToTime > 1) { try { video.currentTime = seekToTime; } catch {} }
+        if (autoplay) doPlay(true);
+      };
+
+      if (type === 'hls' && window.Hls && Hls.isSupported()) {
+        hls = new Hls({ enableWorker: true, lowLatencyMode: false, backBufferLength: 90, maxBufferLength: 60, fragLoadingMaxRetry: 4, manifestLoadingMaxRetry: 2 });
+        hls.loadSource(src);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, onReady);
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (!data.fatal) return;
+          console.warn('hls fatal', data.type, data.details);
+          if (data.type === Hls.ErrorTypes.MEDIA_ERROR && ready) { hls.recoverMediaError(); return; }
+          failOver(`${data.details}`);
+        });
+      } else if (type === 'hls' && video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = src;
+        video.addEventListener('loadedmetadata', onReady, { once: true });
+      } else {
+        video.src = src;
+        video.addEventListener('loadedmetadata', onReady, { once: true });
+      }
+      video.onerror = () => { if (!ready || !video.currentTime) failOver(video.error ? `media error ${video.error.code}` : 'media error'); };
+    }
+
+    /** this source does not play → try the alt (mp4) first, then ask the server for the next hoster */
+    function failOver(reason) {
+      if (current && current.altUrl && !triedAlt) {
+        triedAlt = true;
+        toast('hls fehlgeschlagen – versuche direkten mp4-link …', 3000);
+        if (hls) { hls.destroy(); hls = null; }
+        ready = false;
+        startNative(current.altUrl, current.altType || 'mp4', current.referer, video.currentTime || current.seekTo || 0, true);
+        return;
+      }
+      if (errorReported) return;
+      errorReported = true;
+      $('loading').classList.remove('hidden');
+      $('loading-text').textContent = `${current?.hosterName || 'hoster'} spielt nicht – wechsle hoster …`;
+      send('player_error', { message: reason });
+    }
+
+    function startEmbed(url) {
+      mode = 'embed';
+      video.classList.add('hidden');
+      frame.classList.remove('hidden');
+      let u = url;
+      try { const x = new URL(url); if (!x.searchParams.has('autoplay')) x.searchParams.set('autoplay', '1'); u = x.toString(); } catch {}
+      const show = () => {
+        if (ready) return;
+        ready = true;
+        $('loading').classList.add('hidden');
+        player.classList.add('active');
+        setStatus('', false);
+        showBadge(6000);
+        send('ready');
+        toast('iframe-modus: steuerung nur direkt am tv (anderen hoster am handy wählen für volle kontrolle)', 6000);
+      };
+      frame.onload = show;
+      frame.src = u;
+      setTimeout(show, 4000);
+    }
+
+    function stop() {
+      destroy();
+      current = null;
+      mode = 'idle';
+      player.classList.remove('active');
+      $('loading').classList.add('hidden');
+      ['badge', 'hud', 'seekline', 'upnext'].forEach((id) => $(id).classList.add('hidden'));
+      $('idle').classList.remove('hidden');
+      document.title = 'aniplay · tv';
+    }
+
+    // ── playback control ──
+    function doPlay(silentFallback) {
+      if (mode !== 'native') return;
+      video.muted = false;
+      video.play().then(() => osd('play')).catch(() => {
+        // autoplay without a user gesture: start muted and unmute on the first tap/keypress
+        video.muted = true;
+        video.play().then(() => {
+          toast('ton ist stumm – einmal auf den bildschirm tippen oder eine taste drücken', 6000);
+          const unmute = () => { video.muted = false; toast('ton an'); };
+          document.addEventListener('pointerdown', unmute, { once: true });
+          document.addEventListener('keydown', unmute, { once: true });
+        }).catch(() => {});
+      });
+    }
+    function doPause() { if (mode === 'native') { video.pause(); osd('pause'); } }
+    function seekBy(d) {
+      if (mode !== 'native' || !video.duration) return;
+      video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + d));
+      osd(d > 0 ? 'fwd' : 'rew', `${Math.abs(d)}s`);
+      showSeekline();
+    }
+    function seekTo(t, resume) {
+      if (mode !== 'native') return;
+      video.currentTime = Math.max(0, Math.min(video.duration || t, t));
+      if (resume && video.paused) doPlay();
+      osd('sync');
+      showSeekline();
+    }
+    function setVolume(v) {
+      if (mode !== 'native') return;
+      video.muted = false;
+      video.volume = Math.max(0, Math.min(1, v));
+      osd(video.volume > 0.5 ? 'volume' : 'volumeLow', `${Math.round(video.volume * 100)}%`);
+    }
+
+    // video events → server
+    video.addEventListener('play', () => { send('playing'); showBadge(2500); });
+    video.addEventListener('pause', () => { if (!video.ended) { send('paused'); showBadge(0); showSeekline(0); } });
+    video.addEventListener('ended', () => send('ended'));
+    video.addEventListener('durationchange', () => send('duration', { duration: video.duration || 0 }));
+    video.addEventListener('timeupdate', () => {
+      updateSeekline();
+      const now = Date.now();
+      if (now - lastTimeSent < 900) return;
+      lastTimeSent = now;
+      send('timeupdate', { currentTime: video.currentTime, duration: video.duration || 0, volume: video.volume, muted: video.muted });
+    });
+    video.addEventListener('volumechange', () => send('timeupdate', { currentTime: video.currentTime, duration: video.duration || 0, volume: video.volume, muted: video.muted }));
+    video.addEventListener('waiting', () => setStatus('puffert …', true));
+    video.addEventListener('playing', () => { setStatus('', false); $('badge').classList.add('hidden'); $('hud').classList.add('hidden'); $('seekline').classList.add('hidden'); showBadge(2500); });
+
+    // ── up next ──
+    function showUpNext(msg) {
+      if (!msg.episode) return;
+      let n = msg.seconds || 8;
+      $('upnext-title').textContent = `${epLabel(msg.episode)} · ${msg.episode.title}`;
+      $('upnext-count').textContent = `${n}s`;
+      $('upnext').classList.remove('hidden');
+      clearInterval(upnextInterval);
+      upnextInterval = setInterval(() => { n -= 1; $('upnext-count').textContent = `${Math.max(0, n)}s`; if (n <= 0) clearInterval(upnextInterval); }, 1000);
+    }
+    function hideUpNext() { clearInterval(upnextInterval); $('upnext').classList.add('hidden'); }
+
+    // ── fullscreen / local input ──
+    function isFs() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+    function toggleFullscreen() {
+      if (isFs()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+      else { const el = document.documentElement; (el.requestFullscreen || el.webkitRequestFullscreen).call(el).catch?.(() => {}); }
+    }
+    $('fsbtn').addEventListener('click', toggleFullscreen);
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      userInteracted = true;
+      switch (e.key) {
+        case ' ': case 'k': e.preventDefault(); if (mode === 'native') (video.paused ? doPlay() : doPause()); break;
+        case 'ArrowRight': seekBy(e.shiftKey ? 60 : 10); break;
+        case 'ArrowLeft': seekBy(e.shiftKey ? -60 : -10); break;
+        case 'ArrowUp': setVolume(video.volume + 0.1); break;
+        case 'ArrowDown': setVolume(video.volume - 0.1); break;
+        case 'f': toggleFullscreen(); break;
+        case 'm': video.muted = !video.muted; osd(video.muted ? 'mute' : 'volume'); break;
+        case 'i': showBadge(); showSeekline(); break;
+        case 'Escape': if (!isFs()) stop(); break;
+      }
+    });
+    player.addEventListener('click', () => { if (mode === 'native') (video.paused ? doPlay() : doPause()); });
+    player.addEventListener('dblclick', toggleFullscreen);
+    document.addEventListener('pointerdown', () => { userInteracted = true; }, { once: true });
+
+    // hide the mouse cursor while a video plays
+    document.addEventListener('mousemove', () => {
+      document.body.classList.remove('hide-cursor');
+      clearTimeout(cursorTimer);
+      if (mode === 'native' && !video.paused) { showBadge(); showSeekline(); cursorTimer = setTimeout(() => document.body.classList.add('hide-cursor'), 2500); }
+    });
+
+    // last watched (shown on the idle screen)
+    fetch('/api/history').then((r) => r.json()).then(({ history }) => {
+      const h = history && history[0];
+      if (!h) return;
+      $('last').classList.remove('hidden');
+      $('last').innerHTML = `<div class="poster">${h.cover ? `<img src="${esc(h.cover)}" alt="">` : ''}</div><div><div class="muted xs">zuletzt geschaut</div><div class="truncate">${esc(h.title)}${h.episodeNum != null ? ` · ${esc(epLabel({ seasonNum: h.seasonNum, num: h.episodeNum }))}` : ''}</div></div>`;
+    }).catch(() => {});
+
+    setInterval(() => send('ping'), 20000);
+  </script>
+</body>
+</html>

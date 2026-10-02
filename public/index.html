@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>aniplay</title>
+  <meta name="description" content="TV als Player, Handy als Fernbedienung. Streams von aniworld.to." />
+  <meta name="theme-color" content="#f4ecf2" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#17121c" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/css/app.css" />
+  <style>
+    .choice { display: grid; gap: 16px; }
+    @media (min-width: 640px) { .choice { grid-template-columns: 1fr 1fr; } }
+    .choice .win { cursor: pointer; text-decoration: none; color: inherit; display: block; transition: transform 0.08s, box-shadow 0.08s; }
+    .choice .win:hover { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--line); }
+    .choice .big { font-family: var(--font-pixel); font-size: 42px; line-height: 1; margin-bottom: 8px; }
+    .url { font-size: 12px; word-break: break-all; color: var(--accent-2); }
+    .qr { width: 160px; height: 160px; padding: 8px; background: #fff; border: 1.5px solid var(--line); margin: 0 auto; }
+    .qr img { width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="site-header">
+      <h1><a href="/">aniplay</a></h1>
+      <div class="site-sub"><span class="accent-2">アニプレイ</span> · tv als player, handy als fernbedienung</div>
+    </header>
+
+    <main class="grid">
+      <section class="win">
+        <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">welcome</span><span class="right" id="conn">…</span></div>
+        <div class="win-body">
+          <h2 class="pixel accent" style="margin: 0 0 8px; font-weight: 400; font-size: 18px;">hallo _(:з)∠)_</h2>
+          <p style="margin: 0 0 6px;">öffne <b>tv</b> auf dem fernseher oder pc, und <b>fernbedienung</b> auf dem handy. beide müssen im selben wlan sein.</p>
+          <p class="muted sm" style="margin: 0;">streams kommen von aniworld.to. sprache, hoster, weiterschauen und autoplay regelst du am handy.</p>
+        </div>
+      </section>
+
+      <div class="choice">
+        <a class="win" href="/watcher">
+          <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">tv</span></div>
+          <div class="win-body">
+            <div class="big">📺</div>
+            <div>der player. vollbild, zeigt einen qr-code zum verbinden.</div>
+            <div class="url" id="watcher-url">…</div>
+          </div>
+        </a>
+        <a class="win" href="/controller">
+          <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">fernbedienung</span></div>
+          <div class="win-body">
+            <div class="big">📱</div>
+            <div>suchen, episode wählen, pause, spulen, lautstärke.</div>
+            <div class="url" id="controller-url">…</div>
+          </div>
+        </a>
+      </div>
+
+      <section class="win win-dashed">
+        <div class="win-title"><span class="dots"><i></i><i></i><i></i></span><span class="title">handy verbinden</span></div>
+        <div class="win-body" style="text-align: center;">
+          <div class="qr"><img src="/api/qr.svg" alt="QR-Code zur Fernbedienung" /></div>
+          <p class="muted sm" style="margin: 10px 0 0;">qr scannen oder die adresse oben eintippen.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="win win-dashed" style="margin-top: 20px;">
+      <div class="win-body row between wrap sm">
+        <span class="muted">aniplay · credits <a href="https://vensin.dev" target="_blank" rel="noreferrer">vensin</a></span>
+        <span class="row"><a href="/watcher" class="btn sm">tv</a><a href="/controller" class="btn sm">remote</a><button class="btn sm" type="button" data-theme-toggle>…</button></span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    AP.applySavedTheme();
+    AP.updateThemeButtons();
+    fetch('/api/info').then((r) => r.json()).then((i) => {
+      document.getElementById('watcher-url').textContent = i.watcherUrl;
+      document.getElementById('controller-url').textContent = i.controllerUrl;
+      document.getElementById('conn').textContent = `tv: ${i.watchers} · remote: ${i.controllers}`;
+    }).catch(() => {});
+  </script>
+</body>
+</html>
