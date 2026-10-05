@@ -14,6 +14,8 @@
 </div>
 <!-- /cozy:cards -->
 
+[![supports warden](https://raw.githubusercontent.com/vxnsin/warden/main/assets/supports-warden.svg)](https://github.com/vxnsin/warden)
+
 Anime im Wohnzimmer: Der Fernseher oder PC ist der Player, das Handy die Fernbedienung. Suchen, Folge antippen, auf dem großen Bildschirm schauen und vom Sofa aus pausieren, spulen und weiterschalten. Die Folgen kommen von aniworld.to.
 
 <p align="center"><img src=".github/screenshot.jpg" width="420" alt="aniplay-fernbedienung: anime mit staffeln und episodenliste, gesehene folgen mit haken"></p>
