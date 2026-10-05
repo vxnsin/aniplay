@@ -85,8 +85,16 @@ Tastatur am TV: `Space` Pause, `←` `→` ±10 Sekunden (mit `Shift` ±60), `�
 | `PORT` | `3000` | Port des Servers |
 | `DATA_DIR` | `./data` | Ordner der Datenbank `aniplay.sqlite` |
 | `PUBLIC_URL` | LAN-IP automatisch | Adresse in den QR-Codes, z. B. `http://pi.local:3000` |
+| `WARDEN_URL` | `http://127.0.0.1:7010` | Adresse des warden, siehe unten |
+| `WARDEN_NAME` | `aniplay` | Name, unter dem sich aniplay beim warden anmeldet |
+| `WARDEN_TOKEN` | leer | Token, falls der warden eines verlangt |
+| `WARDEN` | leer | `0` fragt den warden gar nicht erst |
 
 Auf dem Pi stehen sie in `/etc/aniplay.env`. Die Datenbank lässt sich einfach sichern, sie ist eine einzige Datei.
+
+### Port vom warden
+
+Läuft auf dem Rechner ein [warden](https://github.com/vxnsin/warden), fragt aniplay ihn beim Start nach seinem Port, statt einfach `PORT` zu nehmen. `PORT` ist dann der Wunsch: Ist er frei, bleibt es dabei, sonst vergibt der warden einen anderen, und aniplay sagt beim Start, welchen. Derselbe Name bekommt bei jedem Start denselben Port, `warden ls` zeigt, wer ihn hält, und beim Beenden wird er zurückgegeben. Ohne warden ändert sich nichts. `warden run -- npm start` geht genauso, dann hält der warden den Port für den Prozess.
 
 Zum Entwickeln startet `npm run dev` den Server mit nodemon neu, sobald sich Code ändert.
 
@@ -135,6 +143,7 @@ lib/http.js            fetch mit User-Agent und Timeout
 lib/aniworld.js        Suche, Serie, Staffel, Folge, Profil
 lib/stream-resolve.js  Hoster-Reihenfolge, Weiterleitung zum Loader
 lib/store.js           SQLite: Fernseher, Einstellungen, Verlauf, Fortschritt – alles pro TV
+lib/warden.js          Port vom warden, falls einer läuft
 scripts/setup-pi.sh    Einrichtung auf einem Pi im Heimnetz
 lib/loaders/           ein Loader pro Hoster
 public/                watcher.html (TV), controller.html (Handy), index.html

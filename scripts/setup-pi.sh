@@ -116,6 +116,8 @@ if [ ! -f "$ENV_FILE" ]; then
   {
     echo "NODE_ENV=production"
     echo "PORT=$PORT"
+    echo "# Name beim warden (https://github.com/vxnsin/warden), falls einer auf dem Rechner laeuft"
+    echo "WARDEN_NAME=$SERVICE"
     echo "DATA_DIR=$DATA_DIR"
     echo "# Adresse in den QR-Codes; leer = LAN-IP automatisch"
     echo "PUBLIC_URL=$PUBLIC_URL"
@@ -124,7 +126,7 @@ if [ ! -f "$ENV_FILE" ]; then
   sudo chmod 600 "$ENV_FILE"
 else
   # keep the env file in sync with what was answered this time
-  for kv in "PORT=$PORT" "DATA_DIR=$DATA_DIR" "PUBLIC_URL=$PUBLIC_URL"; do
+  for kv in "PORT=$PORT" "DATA_DIR=$DATA_DIR" "PUBLIC_URL=$PUBLIC_URL" "WARDEN_NAME=$SERVICE"; do
     k="${kv%%=*}"
     if grep -q "^$k=" "$ENV_FILE"; then sudo sed -i "s#^$k=.*#$kv#" "$ENV_FILE"; else echo "$kv" | sudo tee -a "$ENV_FILE" >/dev/null; fi
   done

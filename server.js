@@ -14,11 +14,12 @@ const QRCode = require('qrcode');
 
 const aw = require('./lib/aniworld');
 const store = require('./lib/store');
+const warden = require('./lib/warden');
 const { UA, request } = require('./lib/http');
 const { getSession, sessions } = require('./lib/session');
 const pkg = require('./package.json');
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+let PORT = parseInt(process.env.PORT || '3000', 10);
 const PUBLIC = path.join(__dirname, 'public');
 
 const app = express();
@@ -273,9 +274,14 @@ setInterval(() => {
 }, 30000);
 
 // ─────────────────────────────────────────────────────────────────────────────
-server.listen(PORT, () => {
-  const { watcherUrl, base } = urls();
-  console.log(`\n  aniplay v${pkg.version} läuft`);
-  console.log(`  📺 TV:             ${watcherUrl}   (jeder Fernseher bekommt einen eigenen Code)`);
-  console.log(`  📱 Fernbedienung:  QR-Code auf dem TV scannen oder ${base}/controller öffnen und den Code eingeben\n`);
+// a warden on this machine hands out the port; without one PORT is used as it is
+warden.claimPort({ name: pkg.name, preferred: process.env.PORT ? PORT : null, fallback: PORT, meta: { version: pkg.version } }).then(({ port, warden: w }) => {
+  PORT = port;
+  server.listen(PORT, () => {
+    const { watcherUrl, base } = urls();
+    console.log(`\n  aniplay v${pkg.version} läuft`);
+    if (w) console.log(`  🔌 Port:           ${PORT} von warden (${w.name}${w.wrapped ? ', warden run' : ''})`);
+    console.log(`  📺 TV:             ${watcherUrl}   (jeder Fernseher bekommt einen eigenen Code)`);
+    console.log(`  📱 Fernbedienung:  QR-Code auf dem TV scannen oder ${base}/controller öffnen und den Code eingeben\n`);
+  });
 });
