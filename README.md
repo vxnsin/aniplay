@@ -3,9 +3,9 @@
 <!-- cozy:cards -->
 <div align="center">
 
-<a href="https://github.com/vxnsin/aniplay"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-dark.svg?v=7aaeed3e01"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-light.svg?v=7aaeed3e01" width="840" alt="vxnsin/aniplay: TV als Player, Handy als Fernbedienung – Anime von aniworld.to im Wohnzimmer schauen."></picture></a>
+<a href="https://github.com/vxnsin/aniplay"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-dark.svg?v=7aaeed3e01"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-light.svg?v=7aaeed3e01" width="840" alt="vxnsin/aniplay: TV as the player, phone as the remote – watch anime from aniworld.to in your living room."></picture></a>
 
-<a href="https://github.com/vxnsin/aniplay#loslegen"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-start-dark.svg?v=fbf725f61b"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-start-light.svg?v=fbf725f61b" width="102" alt="loslegen →"></picture></a><a href="https://github.com/vxnsin/aniwatch"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-aniwatch-dark.svg?v=420d706147"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-aniwatch-light.svg?v=420d706147" width="82" alt="aniwatch"></picture></a>
+<a href="https://github.com/vxnsin/aniplay#getting-started"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-start-dark.svg?v=fbf725f61b"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-start-light.svg?v=fbf725f61b" width="102" alt="get started →"></picture></a><a href="https://github.com/vxnsin/aniwatch"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-aniwatch-dark.svg?v=420d706147"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-aniwatch-light.svg?v=420d706147" width="82" alt="aniwatch"></picture></a>
 
 <a href="https://github.com/vxnsin/aniplay/commits"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/commits-dark.svg?v=71d89cbdf5"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/commits-light.svg?v=71d89cbdf5" width="840" alt="latest commits of vxnsin/aniplay"></picture></a>
 
@@ -16,43 +16,43 @@
 
 [![supports warden](https://raw.githubusercontent.com/vxnsin/warden/main/assets/supports-warden.svg)](https://github.com/vxnsin/warden)
 
-Anime im Wohnzimmer: Der Fernseher oder PC ist der Player, das Handy die Fernbedienung. Suchen, Folge antippen, auf dem großen Bildschirm schauen und vom Sofa aus pausieren, spulen und weiterschalten. Die Folgen kommen von aniworld.to.
+Anime in your living room: the TV or PC is the player, your phone is the remote. Search, tap an episode, watch on the big screen, and pause, seek and skip from the couch. Episodes come from aniworld.to.
 
-<p align="center"><img src=".github/screenshot.jpg" width="420" alt="aniplay-fernbedienung: anime mit staffeln und episodenliste, gesehene folgen mit haken"></p>
+<p align="center"><img src=".github/screenshot.jpg" width="420" alt="aniplay remote: anime with seasons and episode list, watched episodes with a checkmark"></p>
 
-## Was es kann
+## Features
 
-- **Ein Fernseher, eine Session:** Jeder TV bekommt einen eigenen Code. Der QR-Code auf dem TV verbindet das Handy mit genau diesem Fernseher. Wiedergabe, Verlauf, Weiterschauen und Einstellungen sind pro TV getrennt. Zwei Leute im selben WLAN schauen so gleichzeitig verschiedene Sachen, ohne sich in die Quere zu kommen.
-- **Suche** direkt auf dem Handy, oder einen aniworld-Link einfügen.
-- **Staffeln, Filme und Folgen** mit deutschem und englischem Titel und den verfügbaren Sprachen.
-- **Sprache und Hoster wechseln**, die Position bleibt erhalten.
-- **Weiterschauen:** Jede Folge startet dort, wo du aufgehört hast, pro Fernseher. Fertig geschaute bekommen einen Haken. Verlauf und Fortschritt liegen in SQLite.
-- **AniWorld-Profil**, optional und pro Fernseher: Namen eintragen, dann zeigt die Fernbedienung zuletzt geschaut, Watchlist und Abos. Gesehene Folgen werden markiert.
-- **Autoplay:** Die nächste Folge startet von selbst, auch über Staffelgrenzen. Abschaltbar.
-- **Hoster-Fallback:** Spielt eine Quelle auf dem TV nicht, nimmt aniplay automatisch die nächste.
-- Mehrere Handys können denselben TV steuern. Fernseher lassen sich benennen, etwa „wohnzimmer“.
-- Die laufende Folge überlebt einen Server-Neustart, jeder TV spielt einfach weiter.
-- Heller und dunkler Modus, folgt dem System.
+- **One TV, one session:** Every TV gets its own code. The QR code on the TV connects your phone to exactly that TV. Playback, history, continue watching and settings are separate per TV. Two people on the same Wi-Fi can watch different things at the same time without getting in each other's way.
+- **Search** right on your phone, or paste an aniworld link.
+- **Seasons, movies and episodes** with German and English titles and the available languages.
+- **Switch language and hoster** without losing your position.
+- **Continue watching:** Every episode resumes where you left off, per TV. Finished episodes get a checkmark. History and progress are stored in SQLite.
+- **AniWorld profile**, optional and per TV: enter your username and the remote shows recently watched, watchlist and subscriptions. Watched episodes are marked.
+- **Autoplay:** The next episode starts on its own, even across seasons. Can be turned off.
+- **Hoster fallback:** If a source won't play on the TV, aniplay automatically tries the next one.
+- Multiple phones can control the same TV. TVs can be named, e.g. "living room".
+- The current episode survives a server restart; every TV just keeps playing.
+- Light and dark mode, following the system setting.
 
-## Loslegen
+## Getting started
 
-### Auf dem Raspberry Pi
+### On a Raspberry Pi
 
-Am einfachsten läuft aniplay dauerhaft auf einem Raspberry Pi oder einem anderen Debian-Rechner im Heimnetz:
+The easiest way is to run aniplay permanently on a Raspberry Pi or another Debian machine on your home network:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/vxnsin/aniplay/main/scripts/setup-pi.sh | bash
 ```
 
-Das Script fragt nach Ordner, Port, Dienstname und der Adresse für die QR-Codes und schlägt für alles einen Wert vor, Enter übernimmt. Danach installiert es Node, falls es fehlt, lädt aniplay herunter, legt die Datenbank nach `/var/lib/aniplay` und richtet einen Dienst ein, der beim Booten startet. Es braucht keine Domain, und nichts wird ins Internet geöffnet.
+The script asks for the folder, port, service name and the address for the QR codes, and suggests a value for each; Enter accepts it. It then installs Node if it's missing, downloads aniplay, puts the database in `/var/lib/aniplay` and sets up a service that starts on boot. No domain is needed, and nothing is exposed to the internet.
 
-Update: das Script einfach nochmal starten. Ohne Fragen: `bash ~/aniplay/scripts/setup-pi.sh --yes`.
+Update: just run the script again. Without prompts: `bash ~/aniplay/scripts/setup-pi.sh --yes`.
 
-Tipp: Gib dem Pi im Router eine feste IP, dann bleiben die QR-Codes gültig. Oder trag bei der Frage nach der Adresse `http://<hostname>.local:3000` ein.
+Tip: give the Pi a fixed IP in your router so the QR codes stay valid. Or enter `http://<hostname>.local:3000` when asked for the address.
 
-### Auf dem eigenen Rechner
+### On your own computer
 
-Voraussetzung ist Node 22.13 oder neuer.
+Requires Node 22.13 or newer.
 
 ```bash
 git clone https://github.com/vxnsin/aniplay.git
@@ -61,101 +61,101 @@ npm install
 npm start
 ```
 
-Dann im Browser:
+Then in the browser:
 
-| gerät | adresse |
+| device | address |
 |---|---|
-| TV oder PC | `http://<ip-des-rechners>:3000/watcher` |
-| Handy | den QR-Code auf dem TV scannen, oder `http://<ip-des-rechners>:3000/controller` öffnen und den Code vom TV eingeben |
+| TV or PC | `http://<computer-ip>:3000/watcher` |
+| phone | scan the QR code on the TV, or open `http://<computer-ip>:3000/controller` and enter the code shown on the TV |
 
-Alle Geräte müssen im selben WLAN sein. Den Port ändert `PORT=4000 npm start`. Beim Start gibt der Server die Adressen mit der richtigen IP aus.
+All devices must be on the same Wi-Fi. Change the port with `PORT=4000 npm start`. On startup the server prints the addresses with the correct IP.
 
-### Mehrere Fernseher
+### Multiple TVs
 
-Jeder Browser, der `/watcher` öffnet, ist ein eigener Fernseher mit eigenem vierstelligen Code und merkt sich diesen Code. Das Handy, das den QR-Code eines TVs scannt, steuert nur diesen TV und sieht nur dessen Verlauf. Über „anderen tv wählen“ in der Fernbedienung kommst du zu einem anderen Fernseher. Einen TV gezielt spiegeln geht mit `/watcher?s=CODE`.
+Every browser that opens `/watcher` is its own TV with its own four-digit code, and it remembers that code. A phone that scans a TV's QR code controls only that TV and sees only its history. "choose another tv" in the remote takes you to a different TV. To mirror a specific TV, use `/watcher?s=CODE`.
 
-## Bedienung
+## Controls
 
-Auf dem Handy: Play/Pause, ±10, 30, 60 und 85 Sekunden, Seek-Leiste, Lautstärke, stumm, Vollbild, vorige und nächste Folge, „von vorne“, TV synchronisieren und Stop.
+On the phone: play/pause, ±10, 30, 60 and 85 seconds, seek bar, volume, mute, fullscreen, previous and next episode, "start over", sync TV, and stop.
 
-Tastatur am TV: `Space` Pause, `←` `→` ±10 Sekunden (mit `Shift` ±60), `↑` `↓` Lautstärke, `f` Vollbild, `m` stumm, `i` Info, `Esc` Stop.
+Keyboard on the TV: `Space` pause, `←` `→` ±10 seconds (±60 with `Shift`), `↑` `↓` volume, `f` fullscreen, `m` mute, `i` info, `Esc` stop.
 
-## Einstellungen
+## Settings
 
-| variable | standard | |
+| variable | default | |
 |---|---|---|
-| `PORT` | `3000` | Port des Servers |
-| `DATA_DIR` | `./data` | Ordner der Datenbank `aniplay.sqlite` |
-| `PUBLIC_URL` | LAN-IP automatisch | Adresse in den QR-Codes, z. B. `http://pi.local:3000` |
-| `WARDEN_URL` | `http://127.0.0.1:7010` | Adresse des warden, siehe unten |
-| `WARDEN_NAME` | `aniplay` | Name, unter dem sich aniplay beim warden anmeldet |
-| `WARDEN_TOKEN` | leer | Token, falls der warden eines verlangt |
-| `WARDEN` | leer | `0` fragt den warden gar nicht erst |
+| `PORT` | `3000` | server port |
+| `DATA_DIR` | `./data` | folder for the database `aniplay.sqlite` |
+| `PUBLIC_URL` | LAN IP, detected automatically | address in the QR codes, e.g. `http://pi.local:3000` |
+| `WARDEN_URL` | `http://127.0.0.1:7010` | address of warden, see below |
+| `WARDEN_NAME` | `aniplay` | name aniplay registers under with warden |
+| `WARDEN_TOKEN` | empty | token, if warden requires one |
+| `WARDEN` | empty | `0` skips asking warden entirely |
 
-Auf dem Pi stehen sie in `/etc/aniplay.env`. Die Datenbank lässt sich einfach sichern, sie ist eine einzige Datei.
+On the Pi they live in `/etc/aniplay.env`. The database is easy to back up; it's a single file.
 
-### Port vom warden
+### Port from warden
 
-Läuft auf dem Rechner ein [warden](https://github.com/vxnsin/warden), fragt aniplay ihn beim Start nach seinem Port, statt einfach `PORT` zu nehmen. `PORT` ist dann der Wunsch: Ist er frei, bleibt es dabei, sonst vergibt der warden einen anderen, und aniplay sagt beim Start, welchen. Derselbe Name bekommt bei jedem Start denselben Port, `warden ls` zeigt, wer ihn hält, und beim Beenden wird er zurückgegeben. Ohne warden ändert sich nichts. `warden run -- npm start` geht genauso, dann hält der warden den Port für den Prozess.
+If a [warden](https://github.com/vxnsin/warden) is running on the machine, aniplay asks it for a port on startup instead of just taking `PORT`. `PORT` then becomes the preferred port: if it's free, it's used, otherwise warden assigns a different one and aniplay tells you which on startup. The same name gets the same port on every start, `warden ls` shows who holds it, and it's released on shutdown. Without warden nothing changes. `warden run -- npm start` works too; warden then holds the port for the process.
 
-Zum Entwickeln startet `npm run dev` den Server mit nodemon neu, sobald sich Code ändert.
+For development, `npm run dev` restarts the server with nodemon whenever the code changes.
 
-## Hoster
+## Hosters
 
-| hoster | modus |
+| hoster | mode |
 |---|---|
-| VOE | HLS, MP4 als Ersatz |
+| VOE | HLS, MP4 as fallback |
 | Vidmoly | HLS |
-| Filemoon | HLS, auf manchen Domains nur als Iframe |
+| Filemoon | HLS, iframe only on some domains |
 | Vidoza, Streamtape | MP4 |
-| Doodstream | nur Iframe, dann steuerst du direkt am TV |
+| Doodstream | iframe only, so you control it directly on the TV |
 
-Alle Streams laufen über `/api/proxy`, damit Referer und User-Agent der Hoster stimmen.
+All streams go through `/api/proxy` so the referer and user agent match what the hosters expect.
 
-Einen neuen Hoster einbauen: eine Datei in `lib/loaders/` anlegen, sie wird automatisch geladen.
+To add a new hoster, create a file in `lib/loaders/`; it's loaded automatically.
 
 ```js
-const name = 'meinhoster';
-const aliases = ['meinhoster']; // so wie aniworld den hoster nennt
-function matches(url) { return /meinhoster\.com/i.test(url); }
+const name = 'myhoster';
+const aliases = ['myhoster']; // the way aniworld names the hoster
+function matches(url) { return /myhoster\.com/i.test(url); }
 async function resolve(embedUrl, ctx) {
-  // seite laden, stream-url herausziehen …
-  return { streamType: 'hls', url: 'https://…/master.m3u8', embedUrl, referer: 'https://meinhoster.com/', hosterName: 'MeinHoster' };
+  // load the page, extract the stream url …
+  return { streamType: 'hls', url: 'https://…/master.m3u8', embedUrl, referer: 'https://myhoster.com/', hosterName: 'MyHoster' };
 }
 module.exports = { name, aliases, matches, resolve };
 ```
 
-`streamType` ist `hls`, `mp4` oder `embed`, letzteres als Iframe-Ersatz.
+`streamType` is `hls`, `mp4` or `embed`, the latter as an iframe fallback.
 
-## Test
+## Tests
 
 ```bash
 npm test
 npm test -- frieren-beyond-journeys-end
 ```
 
-Der Smoke-Test fragt aniworld.to live ab: Suche, Serie, Staffel, Folge und jeden Hoster einmal.
+The smoke test queries aniworld.to live: search, series, season, episode, and every hoster once.
 
-## Aufbau
+## Structure
 
 ```
-server.js              Express und WebSocket, API, Stream-Proxy, Kopplung
-lib/session.js         eine Session pro Fernseher: Wiedergabe, Sockets, Autoplay, Fallback
-lib/http.js            fetch mit User-Agent und Timeout
-lib/aniworld.js        Suche, Serie, Staffel, Folge, Profil
-lib/stream-resolve.js  Hoster-Reihenfolge, Weiterleitung zum Loader
-lib/store.js           SQLite: Fernseher, Einstellungen, Verlauf, Fortschritt – alles pro TV
-lib/warden.js          Port vom warden, falls einer läuft
-scripts/setup-pi.sh    Einrichtung auf einem Pi im Heimnetz
-lib/loaders/           ein Loader pro Hoster
-public/                watcher.html (TV), controller.html (Handy), index.html
+server.js              Express and WebSocket, API, stream proxy, pairing
+lib/session.js         one session per TV: playback, sockets, autoplay, fallback
+lib/http.js            fetch with user agent and timeout
+lib/aniworld.js        search, series, season, episode, profile
+lib/stream-resolve.js  hoster order, hand-off to the loader
+lib/store.js           SQLite: TVs, settings, history, progress – all per TV
+lib/warden.js          port from warden, if one is running
+scripts/setup-pi.sh    setup on a Pi on your home network
+lib/loaders/           one loader per hoster
+public/                watcher.html (TV), controller.html (phone), index.html
 ```
 
-## Hinweise
+## Notes
 
-- Die Inhalte kommen von aniworld.to und den jeweiligen Hostern, aniplay speichert keine Videos. Ob das Ansehen bei dir erlaubt ist, liegt in deiner Verantwortung.
-- Zusammen im Discord-Sprachkanal schauen: [aniwatch](https://github.com/vxnsin/aniwatch).
+- Content comes from aniworld.to and the respective hosters; aniplay doesn't store any videos. Whether watching is legal where you are is your responsibility.
+- Watch together in a Discord voice channel: [aniwatch](https://github.com/vxnsin/aniwatch).
 
-## Lizenz
+## License
 
 MIT
