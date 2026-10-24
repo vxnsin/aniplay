@@ -3,11 +3,11 @@
 <!-- cozy:cards -->
 <div align="center">
 
-<a href="https://github.com/vxnsin/aniplay"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-dark.svg?v=38a881f57a"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-light.svg?v=38a881f57a" width="840" alt="vxnsin/aniplay: TV as the player, phone as the remote – watch anime from aniworld.to in your living room."></picture></a>
+<a href="https://github.com/vxnsin/aniplay"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-dark.svg?v=2f5394e54e"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/repo-light.svg?v=2f5394e54e" width="840" alt="vxnsin/aniplay: TV as the player, phone as the remote – watch anime from aniworld.to in your living room."></picture></a>
 
 <a href="https://github.com/vxnsin/aniplay#getting-started"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-start-dark.svg?v=8772f84c0b"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-start-light.svg?v=8772f84c0b" width="121" alt="get started →"></picture></a><a href="https://github.com/vxnsin/aniwatch"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-aniwatch-dark.svg?v=420d706147"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/nav-aniwatch-light.svg?v=420d706147" width="82" alt="aniwatch"></picture></a>
 
-<a href="https://github.com/vxnsin/aniplay/commits"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/commits-dark.svg?v=28942c8124"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/commits-light.svg?v=28942c8124" width="840" alt="latest commits of vxnsin/aniplay"></picture></a>
+<a href="https://github.com/vxnsin/aniplay/commits"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/commits-dark.svg?v=8cacd02438"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/commits-light.svg?v=8cacd02438" width="840" alt="latest commits of vxnsin/aniplay"></picture></a>
 
 <a href="https://github.com/vxnsin/aniplay/graphs/contributors"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vxnsin/aniplay/output/contributors-dark.svg?v=68449483e2"><img src="https://raw.githubusercontent.com/vxnsin/aniplay/output/contributors-light.svg?v=68449483e2" width="840" alt="contributors: vxnsin"></picture></a>
 
