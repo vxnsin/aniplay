@@ -18,6 +18,7 @@ questions:
   - id: port
     prompt: Which port should aniplay listen on?
     type: port
+    warden: true
     default: 3000
   - id: public_url
     prompt: Address for the QR codes, e.g. http://raspberrypi.local:3000 (empty = detect the IP)
@@ -29,8 +30,6 @@ config:
   env:
     NODE_ENV: production
     DATA_DIR: "{{ .werft_shared }}/data"
-    # werft owns the port, so warden is not asked
-    WARDEN: "0"
 
 shared: [data]
 
