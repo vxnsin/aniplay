@@ -1,0 +1,53 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/vxnsin/werft/main/schema/werft.schema.json
+#
+# Install and update with werft (https://github.com/vxnsin/werft):
+#   sudo werft install https://github.com/vxnsin/aniplay
+schema: 1
+name: aniplay
+description: aniplay, the TV as the player and the phone as the remote
+
+source:
+  channel: branch
+  branch: main
+
+requires:
+  os: [debian>=12, ubuntu>=22.04]
+  commands: [node>=22.13, npm]
+
+questions:
+  - id: port
+    prompt: Which port should aniplay listen on?
+    type: port
+    default: 3000
+  - id: public_url
+    prompt: Address for the QR codes, e.g. http://raspberrypi.local:3000 (empty = detect the IP)
+    type: url
+    optional: true
+
+config:
+  env_file: /etc/aniplay/.env
+  env:
+    NODE_ENV: production
+    DATA_DIR: "{{ .werft_shared }}/data"
+    # werft owns the port, so warden is not asked
+    WARDEN: "0"
+
+shared: [data]
+
+install:
+  - npm ci --omit=dev --no-audit --no-fund
+
+update:
+  backup:
+    paths: ["{{ .werft_shared }}/data"]
+
+runtime:
+  type: systemd
+  systemd:
+    exec: node server.js
+    user: aniplay
+    restart: always
+
+health:
+  http: http://localhost:{{ .port }}/api/info
+  timeout: 30s

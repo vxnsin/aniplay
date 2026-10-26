@@ -48,6 +48,8 @@ The script asks for the folder, port, service name and the address for the QR co
 
 Update: just run the script again. Without prompts: `bash ~/aniplay/scripts/setup-pi.sh --yes`.
 
+With [werft](https://github.com/vxnsin/werft) on the machine, `sudo werft install https://github.com/vxnsin/aniplay` does the same and `werft update aniplay` pulls new versions later.
+
 Tip: give the Pi a fixed IP in your router so the QR codes stay valid. Or enter `http://<hostname>.local:3000` when asked for the address.
 
 ### On your own computer
